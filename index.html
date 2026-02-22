@@ -419,7 +419,10 @@
         /* Mode solo (Standard) : Météo, Temp, ou Pluie seule */
         .type-weather .marker-content-wrapper,
         .type-temp .marker-content-wrapper,
-        .type-precip .marker-content-wrapper {
+        .type-precip .marker-content-wrapper,
+        .type-precip_24h .marker-content-wrapper,
+        .type-gusts .marker-content-wrapper,
+        .type-gusts_24h .marker-content-wrapper {
             height: 120px;
         }
 
@@ -637,14 +640,16 @@
 
         /* Mode Standalone Petit (France Entière) */
         .weather-marker.is-small.type-temp .temp-standalone,
-        .weather-marker.is-small.type-precip .temp-standalone {
+        .weather-marker.is-small.type-precip .temp-standalone,
+        .weather-marker.is-small.type-precip_24h .temp-standalone {
             font-size: 32px !important;
             text-shadow: 2px 2px 0 #000;
         }
 
         .weather-marker.is-small.type-weather .marker-content-wrapper,
         .weather-marker.is-small.type-temp .marker-content-wrapper,
-        .weather-marker.is-small.type-precip .marker-content-wrapper {
+        .weather-marker.is-small.type-precip .marker-content-wrapper,
+        .weather-marker.is-small.type-precip_24h .marker-content-wrapper {
             height: 80px;
         }
 
@@ -2112,7 +2117,7 @@
             const tMaxStops = [{ val: 0, r: 100, g: 255, b: 255 }, { val: 15, r: 0, g: 255, b: 0 }, { val: 25, r: 255, g: 215, b: 0 }, { val: 35, r: 255, g: 0, b: 0 }];
             const tMinStops = [{ val: -5, r: 255, g: 255, b: 255 }, { val: 0, r: 0, g: 191, b: 255 }, { val: 10, r: 0, g: 255, b: 0 }];
             const rainStops = [{ val: 0, r: 255, g: 255, b: 255 }, { val: 5, r: 0, g: 255, b: 255 }, { val: 20, r: 0, g: 0, b: 255 }, { val: 50, r: 255, g: 0, b: 255 }];
-            let stops = (type === 'gusts') ? windStops : (type === 'temp_min' ? tMinStops : (type === 'precip' ? rainStops : tMaxStops));
+            let stops = (type.startsWith('gusts')) ? windStops : (type === 'temp_min' ? tMinStops : (type.startsWith('precip') ? rainStops : tMaxStops));
 
             if (val <= stops[0].val) return `rgb(${stops[0].r},${stops[0].g},${stops[0].b})`;
             if (val >= stops[stops.length - 1].val) return `rgb(${stops[stops.length - 1].r},${stops[stops.length - 1].g},${stops[stops.length - 1].b})`;
@@ -2167,36 +2172,34 @@
                 let v = manualTempOverrides[idx] !== undefined ? manualTempOverrides[idx] : null;
                 let windData = null;
 
-                if (v === null) {
-                    // Création de créneaux plus larges pour mieux capter les Min/Max réels
+                if (param.startsWith('gusts')) {
                     const is24h = param.includes('_24h');
                     const hStart = dayIdx * 24 + (is24h ? 0 : (period === 'morning' ? 0 : period === 'afternoon' ? 11 : period === 'evening' ? 17 : 0));
                     const hEnd = dayIdx * 24 + (is24h ? 24 : (period === 'morning' ? 11 : period === 'afternoon' ? 18 : period === 'evening' ? 23 : 24));
-                    const dataKey = (param.startsWith('gusts') ? 'wind_gusts_10m' : (param.startsWith('precip') ? 'precipitation' : 'temperature_2m'));
+                    const chunk = loc.hourly.wind_gusts_10m.slice(hStart, hEnd);
+
+                    const meanChunk = loc.hourly.windspeed_10m.slice(hStart, hEnd);
+                    const maxRawMean = Math.max(...meanChunk);
+                    let roundedMean = Math.round(maxRawMean / 5) * 5;
+                    if (maxRawMean > 0 && roundedMean === 0) roundedMean = 5;
+
+                    const maxIdxInChunk = chunk.indexOf(Math.max(...chunk));
+                    const absoluteIdx = hStart + maxIdxInChunk;
+
+                    windData = {
+                        mean: roundedMean,
+                        dir: loc.hourly.winddirection_10m[absoluteIdx]
+                    };
+                    if (v === null) v = Math.round(Math.max(...chunk) / 5) * 5;
+                } else if (v === null) {
+                    const is24h = param.includes('_24h');
+                    const hStart = dayIdx * 24 + (is24h ? 0 : (period === 'morning' ? 0 : period === 'afternoon' ? 11 : period === 'evening' ? 17 : 0));
+                    const hEnd = dayIdx * 24 + (is24h ? 24 : (period === 'morning' ? 11 : period === 'afternoon' ? 18 : period === 'evening' ? 23 : 24));
+                    const dataKey = (param.startsWith('precip') ? 'precipitation' : 'temperature_2m');
                     const chunk = loc.hourly[dataKey].slice(hStart, hEnd);
 
                     if (param.startsWith('precip')) v = Math.round(chunk.reduce((a, b) => a + b, 0));
-                    else if (param.startsWith('gusts')) {
-                        // On prend le MAX de la rafale
-                        v = Math.round(Math.max(...chunk) / 5) * 5;
-
-                        // On prend aussi le MAX du vent moyen sur la période (indépendamment de l'heure de la rafale)
-                        const meanChunk = loc.hourly.windspeed_10m.slice(hStart, hEnd);
-                        const maxRawMean = Math.max(...meanChunk);
-                        let roundedMean = Math.round(maxRawMean / 5) * 5;
-                        if (maxRawMean > 0 && roundedMean === 0) roundedMean = 5;
-
-                        // La direction reste celle associée à la rafale maximale (moment critique)
-                        const maxIdxInChunk = chunk.indexOf(Math.max(...chunk));
-                        const absoluteIdx = hStart + maxIdxInChunk;
-
-                        windData = {
-                            mean: roundedMean,
-                            dir: loc.hourly.winddirection_10m[absoluteIdx]
-                        };
-                    }
                     else {
-                        // Logique auto : Matin = Min, Après-midi/Soirée = Max
                         if (period === 'morning') v = Math.round(Math.min(...chunk));
                         else v = Math.round(Math.max(...chunk));
                     }
@@ -2207,8 +2210,12 @@
 
             // Déterminer le type précis pour la couleur et la légende
             const isMin = (period === 'morning');
-            const colorType = (param === 'temp' || param === 'weather_temp') ? (isMin ? 'temp_min' : 'temp_max') : param;
-            const legendType = (param === 'temp') ? (isMin ? 'temp_min' : 'temp_max') : param;
+            let colorType = param;
+            if (param === 'temp' || param === 'weather_temp') colorType = isMin ? 'temp_min' : 'temp_max';
+            else if (param.startsWith('gusts')) colorType = 'gusts';
+            else if (param.startsWith('precip')) colorType = 'precip';
+
+            const legendType = (param === 'temp') ? (isMin ? 'temp_min' : 'temp_max') : colorType;
 
             updateLegend(legendType, minV, maxV);
 
@@ -2355,16 +2362,17 @@
             const bankClass = 'bank-' + bank;
             let content = '';
 
-            if (type === 'gusts' && windData) {
+            if (type.startsWith('gusts') && windData) {
                 const isSimple = document.getElementById('simple-wind-check').checked;
+                const fontSize = isSmall ? '32px' : '52px';
                 content = `
                     <div class="wind-box" style="display:flex; flex-direction:column; align-items:center;">
-                        <div class="wind-values" style="font-size:${isSmall ? '24px' : '32px'}; font-weight:900; display:${isSimple ? 'none' : 'flex'}; gap:4px; text-shadow:2px 2px 0 #000;">
+                        <div class="wind-values" style="font-size:${fontSize}; font-weight:900; display:${isSimple ? 'none' : 'flex'}; gap:4px; text-shadow:2px 2px 0 #000;">
                             <span class="wind-mean" style="color:#fff">${windData.mean}</span>
                             <span class="wind-separator" style="opacity:0.7">|</span>
                             <span class="wind-gust" style="color:${color}">${val}</span>
                         </div>
-                        <div class="wind-gust-simple" style="display:${isSimple ? 'block' : 'none'}; font-size:${isSmall ? '24px' : '32px'}; font-weight:900; color:${color}; text-shadow:2px 2px 0 #000; margin-bottom: -5px;">
+                        <div class="wind-gust-simple" style="display:${isSimple ? 'block' : 'none'}; font-size:${fontSize}; font-weight:900; color:${color}; text-shadow:2px 2px 0 #000; margin-bottom: -5px;">
                             ${val}
                         </div>
                         <div class="wind-arrow" style="transform: rotate(${windData.dir + 135}deg); color:${color}; font-size:${isSmall ? '26px' : '38px'}; filter:drop-shadow(2px 2px 0 #000);">
@@ -2391,7 +2399,7 @@
 
             // CALCUL ANCRAGE DYNAMIQUE (Ultra-Précision)
             let iconH = isSmall ? 65 : 100; // Augmenté pour éviter le décalage (était 90)
-            if (type === 'weather' || type === 'temp' || type === 'precip') {
+            if (type === 'weather' || type === 'temp' || type.startsWith('precip')) {
                 iconH = isSmall ? 80 : 120; // Massive pour tous les modes solos
             }
 
@@ -2400,10 +2408,10 @@
             const totalH = labelH + margin + iconH;
             let anchorY = labelH + margin + (iconH / 2);
 
-            if (type === 'gusts') {
+            if (type.startsWith('gusts')) {
                 const isSimple = document.getElementById('simple-wind-check').checked;
                 const arrowH = isSmall ? 26 : 38;
-                const valH = isSmall ? 24 : 32;
+                const valH = isSmall ? 32 : 52;
                 if (isSimple) {
                     anchorY = labelH + margin + valH + (arrowH / 2) - 5;
                 } else {
