@@ -1122,10 +1122,8 @@
                         <option value="weather">🌦️ MÉTÉO</option>
                         <option value="weather_temp" selected>🌡️ MÉTÉO + T°</option>
                         <option value="temp">🌡️ TEMPÉRATURES</option>
-                        <option value="gusts">💨 RAFALES (INST.)</option>
-                        <option value="gusts_24h">🌪️ RAFALES MAXIMALES</option>
-                        <option value="precip">☔ PLUIE (INST.)</option>
-                        <option value="precip_24h">🌧️ CUMULS PRÉCIPITATIONS</option>
+                        <option value="gusts">🌪️ RAFALES MAXIMALES</option>
+                        <option value="precip">🌧️ CUMULS DE PRÉCIPITATIONS</option>
                     </select>
                 </div>
 
@@ -1133,8 +1131,9 @@
                     <h3>PÉRIODE</h3>
                     <select id="day-select" onchange="handleDayChange()"></select>
                     <select id="period-select" onchange="clearManualOverrides(); updateDisplay()">
+                        <option value="day" selected>JOURNÉE (24H)</option>
                         <option value="morning">MATIN</option>
-                        <option value="afternoon" selected>APRÈS-MIDI</option>
+                        <option value="afternoon">APRÈS-MIDI</option>
                         <option value="evening">SOIRÉE</option>
                     </select>
                     <div style="display: flex; justify-content: flex-end; margin-top: -10px;">
@@ -1837,9 +1836,7 @@
             const select = document.getElementById('day-select');
             select.innerHTML = '';
             const today = new Date();
-            for (let i = 0; i < 15; i++) {
-
-
+            for (let i = 0; i < 16; i++) { // 16 jours de prévisions
                 const d = new Date(today); d.setDate(today.getDate() + i);
                 const dayLabel = i === 0 ? "AUJ" : i === 1 ? "DEM" : d.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric' }).toUpperCase();
                 const opt = document.createElement('option'); opt.value = i; opt.text = dayLabel; select.appendChild(opt);
@@ -2148,15 +2145,37 @@
             const period = periodSelect ? periodSelect.value : 'day';
             const bank = document.getElementById('icon-bank-select').value;
 
-            // Gestion de l'affichage du sélecteur de période
+            // Gestion de l'affichage du sélecteur de période (Version Robuste)
             const periodGroup = document.getElementById('period-select').parentElement;
-            if (param.includes('_24h')) {
-                periodGroup.style.opacity = '0.3';
-                periodGroup.style.pointerEvents = 'none';
-            } else {
-                periodGroup.style.opacity = '1';
-                periodGroup.style.pointerEvents = 'auto';
+            const isCumulative = (param === 'gusts' || param === 'precip');
+
+            // On filtre les options visibles
+            let validFound = false;
+            Array.from(periodSelect.options).forEach(opt => {
+                const isDay = (opt.value === 'day');
+                const shouldShow = isCumulative ? isDay : !isDay;
+
+                opt.hidden = !shouldShow;
+                opt.disabled = !shouldShow;
+
+                // Chrome/Safari fix: remove from view if hidden
+                if (!shouldShow) {
+                    opt.style.display = 'none';
+                } else {
+                    opt.style.display = 'block';
+                    if (periodSelect.value === opt.value) validFound = true;
+                }
+            });
+
+            // Si la période actuelle n'est plus valide/visible, on bascule
+            if (!validFound) {
+                periodSelect.value = isCumulative ? 'day' : 'afternoon';
+                updateDisplay();
+                return;
             }
+
+            periodGroup.style.opacity = '1';
+            periodGroup.style.pointerEvents = 'auto';
 
             updateAutoTitles(param, dayIdx, period);
 
@@ -2174,7 +2193,7 @@
                 let windData = null;
 
                 if (param.startsWith('gusts')) {
-                    const is24h = param.includes('_24h');
+                    const is24h = (period === 'day');
                     const hStart = dayIdx * 24 + (is24h ? 0 : (period === 'morning' ? 0 : period === 'afternoon' ? 11 : period === 'evening' ? 17 : 0));
                     const hEnd = dayIdx * 24 + (is24h ? 24 : (period === 'morning' ? 11 : period === 'afternoon' ? 18 : period === 'evening' ? 23 : 24));
                     const chunk = loc.hourly.wind_gusts_10m.slice(hStart, hEnd);
@@ -2202,18 +2221,25 @@
                         }
                     }
                 } else if (v === null) {
-                    const is24h = param.includes('_24h');
+                    const is24h = (period === 'day');
                     const hStart = dayIdx * 24 + (is24h ? 0 : (period === 'morning' ? 0 : period === 'afternoon' ? 11 : period === 'evening' ? 17 : 0));
                     const hEnd = dayIdx * 24 + (is24h ? 24 : (period === 'morning' ? 11 : period === 'afternoon' ? 18 : period === 'evening' ? 23 : 24));
 
                     if (param.startsWith('precip')) {
+                        let rawVal = 0;
                         if (is24h && loc.daily && loc.daily.precipitation_sum && loc.daily.precipitation_sum[dayIdx] !== null) {
-                            v = Math.round(loc.daily.precipitation_sum[dayIdx]);
+                            rawVal = loc.daily.precipitation_sum[dayIdx];
                         } else {
                             const dataKey = 'precipitation';
                             const chunk = loc.hourly[dataKey].slice(hStart, hEnd);
-                            v = Math.round(chunk.reduce((a, b) => a + b, 0));
+                            rawVal = chunk.reduce((a, b) => a + b, 0);
                         }
+
+                        // Règle d'arrondi précise
+                        if (rawVal === 0) v = 0;
+                        else if (rawVal < 2.5) v = 1;
+                        else v = Math.round(rawVal / 5) * 5;
+
                     } else {
                         const dataKey = 'temperature_2m';
                         const chunk = loc.hourly[dataKey].slice(hStart, hEnd);
@@ -2271,8 +2297,8 @@
 
             // Traduction des périodes
             let periodLabel = "";
-            if (param.includes('_24h')) {
-                periodLabel = ""; // Pas de période pour le 24h
+            if (period === 'day') {
+                periodLabel = " - JOURNÉE";
             } else if (period === 'morning') {
                 periodLabel = " - MATIN";
             } else if (period === 'afternoon') {
@@ -2286,9 +2312,7 @@
                 weather_temp: dateStr.toUpperCase(),
                 temp: period === 'morning' ? "TEMPÉRATURES MINIMALES" : "TEMPÉRATURES MAXIMALES",
                 gusts: "RAFALES MAXIMALES",
-                gusts_24h: "RAFALES MAXIMALES",
-                precip: "CUMULS DE PRÉCIPITATIONS",
-                precip_24h: "CUMULS DE PRÉCIPITATIONS"
+                precip: "CUMULS DE PRÉCIPITATIONS"
             };
 
 
