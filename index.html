@@ -1117,8 +1117,10 @@
                         <option value="weather">🌦️ MÉTÉO</option>
                         <option value="weather_temp" selected>🌡️ MÉTÉO + T°</option>
                         <option value="temp">🌡️ TEMPÉRATURES</option>
-                        <option value="gusts">💨 RAFALES</option>
-                        <option value="precip">☔ PLUIE</option>
+                        <option value="gusts">💨 RAFALES (INST.)</option>
+                        <option value="gusts_24h">🌪️ RAFALES MAX (24H)</option>
+                        <option value="precip">☔ PLUIE (INST.)</option>
+                        <option value="precip_24h">🌧️ CUMULS PLUIE (24H)</option>
                     </select>
                 </div>
 
@@ -2139,6 +2141,17 @@
             const periodSelect = document.getElementById('period-select');
             const period = periodSelect ? periodSelect.value : 'day';
             const bank = document.getElementById('icon-bank-select').value;
+
+            // Gestion de l'affichage du sélecteur de période
+            const periodGroup = document.getElementById('period-select').parentElement;
+            if (param.includes('_24h')) {
+                periodGroup.style.opacity = '0.3';
+                periodGroup.style.pointerEvents = 'none';
+            } else {
+                periodGroup.style.opacity = '1';
+                periodGroup.style.pointerEvents = 'auto';
+            }
+
             updateAutoTitles(param, dayIdx, period);
 
             let minV = Infinity, maxV = -Infinity;
@@ -2156,13 +2169,14 @@
 
                 if (v === null) {
                     // Création de créneaux plus larges pour mieux capter les Min/Max réels
-                    const hStart = dayIdx * 24 + (period === 'morning' ? 0 : period === 'afternoon' ? 11 : period === 'evening' ? 17 : 0);
-                    const hEnd = dayIdx * 24 + (period === 'morning' ? 11 : period === 'afternoon' ? 18 : period === 'evening' ? 23 : 24);
-                    const dataKey = (param === 'gusts' ? 'wind_gusts_10m' : (param === 'precip' ? 'precipitation' : 'temperature_2m'));
+                    const is24h = param.includes('_24h');
+                    const hStart = dayIdx * 24 + (is24h ? 0 : (period === 'morning' ? 0 : period === 'afternoon' ? 11 : period === 'evening' ? 17 : 0));
+                    const hEnd = dayIdx * 24 + (is24h ? 24 : (period === 'morning' ? 11 : period === 'afternoon' ? 18 : period === 'evening' ? 23 : 24));
+                    const dataKey = (param.startsWith('gusts') ? 'wind_gusts_10m' : (param.startsWith('precip') ? 'precipitation' : 'temperature_2m'));
                     const chunk = loc.hourly[dataKey].slice(hStart, hEnd);
 
-                    if (param === 'precip') v = Math.round(chunk.reduce((a, b) => a + b, 0));
-                    else if (param === 'gusts') {
+                    if (param.startsWith('precip')) v = Math.round(chunk.reduce((a, b) => a + b, 0));
+                    else if (param.startsWith('gusts')) {
                         // On prend le MAX de la rafale
                         v = Math.round(Math.max(...chunk) / 5) * 5;
 
@@ -2243,7 +2257,9 @@
                 weather_temp: dateStr.toUpperCase(),
                 temp: period === 'morning' ? "TEMPÉRATURES MINIMALES" : "TEMPÉRATURES MAXIMALES",
                 gusts: "RAFALES MAXIMALES",
-                precip: "CUMULS DE PRÉCIPITATIONS"
+                gusts_24h: "RAFALES MAXIMALES (24H)",
+                precip: "CUMULS DE PRÉCIPITATIONS",
+                precip_24h: "CUMULS DE PRÉCIPITATIONS (24H)"
             };
 
 
