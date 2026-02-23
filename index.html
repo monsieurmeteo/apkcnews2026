@@ -2105,7 +2105,8 @@
             const priorityColors = ['#ff4d4d', '#FFD700', '#66ff66']; // Rouge > Jaune > Vert
             const rawPolygonsByColor = {};
 
-            // 2. Génération des enveloppes convexes par couleur
+            // 2. Génération des enveloppes par cluster individuel
+            const allClusters = [];
             priorityColors.forEach(col => {
                 const group = colorGroups[col];
                 if (!group || group.points.length === 0) return;
@@ -2113,7 +2114,7 @@
                 const points = group.points;
                 const clusters = [];
                 const visited = new Set();
-                const threshold = 250000;
+                const threshold = 400000;
 
                 for (let i = 0; i < points.length; i++) {
                     if (visited.has(i)) continue;
@@ -2137,10 +2138,9 @@
                     clusters.push(currentCluster);
                 }
 
-                const hulls = [];
                 clusters.forEach(cluster => {
                     const spreadPoints = [];
-                    const offset = 2.0; // Offset large pour couvrir tout le territoire (Nord, Corse, etc.)
+                    const offset = 1.0; // Réduit pour plus de précision (look angulaire précis)
                     cluster.forEach(p => {
                         spreadPoints.push([p.lng, p.lat + offset]);
                         spreadPoints.push([p.lng, p.lat - offset]);
@@ -2148,63 +2148,51 @@
                         spreadPoints.push([p.lng - offset, p.lat]);
                         spreadPoints.push([p.lng + offset * 0.7, p.lat + offset * 0.7]);
                         spreadPoints.push([p.lng - offset * 0.7, p.lat - offset * 0.7]);
+                        spreadPoints.push([p.lng + offset * 0.7, p.lat - offset * 0.7]);
+                        spreadPoints.push([p.lng - offset * 0.7, p.lat + offset * 0.7]);
                     });
 
                     try {
                         const hull = turf.convex(turf.featureCollection(spreadPoints.map(p => turf.point(p))));
-                        if (hull) hulls.push(hull);
+                        if (hull) {
+                            allClusters.push({
+                                poly: hull,
+                                color: col,
+                                label: group.label,
+                                area: turf.area(hull)
+                            });
+                        }
                     } catch (e) { }
                 });
-
-                if (hulls.length > 0) {
-                    let union = hulls[0];
-                    for (let i = 1; i < hulls.length; i++) {
-                        union = turf.union(union, hulls[i]);
-                    }
-                    rawPolygonsByColor[col] = union;
-                }
             });
 
-            // 3. Soustraction (Priority: Red > Jaune > Green) pour éviter les chevauchements
-            const finalPolygonsByColor = {};
-            priorityColors.forEach((col, i) => {
-                let poly = rawPolygonsByColor[col];
-                if (!poly) return;
+            // 3. Logique de Nichage (Islands) : Le plus petit "perce" un trou dans le plus grand
+            // On trie par surface croissante
+            allClusters.sort((a, b) => a.area - b.area);
 
-                // On soustrait tous les polygones de priorité supérieure
-                for (let j = 0; j < i; j++) {
-                    const higherPoly = rawPolygonsByColor[priorityColors[j]];
-                    if (higherPoly) {
-                        try {
-                            const diff = turf.difference(poly, higherPoly);
-                            if (diff) poly = diff;
-                            else { poly = null; break; }
-                        } catch (e) { console.error("Turf Error:", e); }
-                    }
+            for (let i = 0; i < allClusters.length; i++) {
+                for (let j = i + 1; j < allClusters.length; j++) {
+                    try {
+                        const diff = turf.difference(allClusters[j].poly, allClusters[i].poly);
+                        if (diff) {
+                            allClusters[j].poly = diff;
+                        }
+                    } catch (e) { }
                 }
-                if (poly) finalPolygonsByColor[col] = poly;
-            });
+            }
 
-            // 4. Affichage final avec Labels intelligents
-            for (let col in finalPolygonsByColor) {
-                const geojson = finalPolygonsByColor[col];
-                const labelText = colorGroups[col].label;
+            // 4. Dessin final avec lissage
+            allClusters.forEach(item => {
+                const geojson = item.poly;
+                const col = item.color;
+                const labelText = item.label;
 
                 L.geoJSON(geojson, {
-                    style: { color: col, weight: 3, fillColor: col, fillOpacity: 0.15, smoothFactor: 3 },
+                    style: { color: col, weight: 3, fillColor: col, fillOpacity: 0.15, smoothFactor: 0.5 },
                     onEachFeature: (feature, layer) => {
                         layer.isAutoZone = true;
 
-                        // Application du lissage Chaikin pour un rendu organique (courbes)
-                        if (layer.getLatLngs) {
-                            const processRing = (ring) => {
-                                if (Array.isArray(ring[0])) return ring.map(r => processRing(r));
-                                const pts = ring.map(ll => ({ lat: ll.lat, lng: ll.lng }));
-                                const smoothed = smoothPolygonPoints(pts, 3);
-                                return smoothed.map(p => [p.lat, p.lng]);
-                            };
-                            layer.setLatLngs(processRing(layer.getLatLngs()));
-                        }
+                        // Look angulaire précis (pas de lissage)
 
                         const center = layer.getBounds().getCenter();
                         const sig = col + "_" + center.lat.toFixed(3) + "_" + center.lng.toFixed(3);
@@ -2213,7 +2201,7 @@
 
                         layer.on('click', () => openDeleteZoneModal(layer, layer.relatedMarker));
 
-                        // Placement intelligent des labels (un par morceau de zone)
+                        // Labels aux centres de masse pour chaque partie
                         const parts = feature.geometry.type === 'MultiPolygon'
                             ? feature.geometry.coordinates.map(c => turf.polygon(c))
                             : [feature];
@@ -2224,9 +2212,9 @@
                                 const marker = L.marker([coord[1], coord[0]], {
                                     icon: L.divIcon({
                                         className: 'zone-label',
-                                        html: `<div style="color:${col}; border-color:${col}">${labelText}</div>`,
-                                        iconSize: [40, 20],
-                                        iconAnchor: [20, 10]
+                                        html: `<div style="background:#222; color:#fff; border:2px solid ${col}; padding:2px 8px; border-radius:4px; font-size:16px; font-weight:900;">${labelText}</div>`,
+                                        iconSize: [50, 25],
+                                        iconAnchor: [25, 12]
                                     }),
                                     interactive: true,
                                     pane: 'zoneLabelPane'
@@ -2238,7 +2226,7 @@
                         });
                     }
                 }).addTo(autoZoningGroup);
-            }
+            });
         }
 
         function getLayerStyle(styleMode, isDept = false) {
