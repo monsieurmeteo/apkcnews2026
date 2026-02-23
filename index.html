@@ -1683,19 +1683,19 @@
         // Les 'code' ici servent d'identifiants internes pour la logique de mapping ci-dessus.
         // P1=0, P2=1, P3=2, P4=3, P5=45, P6=71, P7=51, P8=61, P9=65, P10=80, P11=81, P12=95
         const weatherCodes = [
-            { code: 0, label: "Soleil", icon: "fa-sun", color: "#FFD700", emoji: "☀️", img: "P1.png" },       // P1
-            { code: 13, label: "Soleil Voilé", icon: "fa-cloud-sun", color: "#FFD700", emoji: "🌤️", img: "P13.png" }, // P13
-            { code: 1, label: "Peu Nuageux", icon: "fa-cloud-sun", color: "#FFD700", emoji: "🌤️", img: "P2.png" }, // P2
-            { code: 2, label: "Nuageux", icon: "fa-cloud-sun", color: "#ddd", emoji: "⛅", img: "P3.png" },     // P3
-            { code: 3, label: "Très Nuageux", icon: "fa-cloud", color: "#aaa", emoji: "☁️", img: "P4.png" },    // P4
-            { code: 45, label: "Averses", icon: "fa-cloud-sun-rain", color: "#FFD700", emoji: "🌦️", img: "P5.png" }, // P5
-            { code: 71, label: "Couvert", icon: "fa-cloud", color: "#888", emoji: "☁️", img: "P6.png" },        // P6
-            { code: 51, label: "Pluie", icon: "fa-cloud-rain", color: "#4db8ff", emoji: "🌧️", img: "P7.png" }, // P7
-            { code: 61, label: "Pluie Forte", icon: "fa-cloud-showers-heavy", color: "#4db8ff", emoji: "🌧️", img: "P8.png" }, // P8
-            { code: 65, label: "Orages", icon: "fa-bolt", color: "#FFD700", emoji: "⚡", img: "P9.png" },       // P9
-            { code: 80, label: "Orages Grêle", icon: "fa-cloud-meatball", color: "#FFD700", emoji: "⛈️", img: "P10.png" }, // P10
-            { code: 81, label: "Averses Neige", icon: "fa-snowflake", color: "#fff", emoji: "🌨️", img: "P11.png" }, // P11
-            { code: 95, label: "Neige", icon: "fa-snowflake", color: "#fff", emoji: "❄️", img: "P12.png" }      // P12
+            { code: 0, label: "P1", icon: "fa-sun", color: "#FFD700", emoji: "☀️", img: "P1.png" },       // P1
+            { code: 13, label: "P13", icon: "fa-cloud-sun", color: "#FFD700", emoji: "🌤️", img: "P13.png" }, // P13
+            { code: 1, label: "P2", icon: "fa-cloud-sun", color: "#FFD700", emoji: "🌤️", img: "P2.png" }, // P2
+            { code: 2, label: "P3", icon: "fa-cloud-sun", color: "#ddd", emoji: "⛅", img: "P3.png" },     // P3
+            { code: 3, label: "P4", icon: "fa-cloud", color: "#aaa", emoji: "☁️", img: "P4.png" },    // P4
+            { code: 45, label: "P5", icon: "fa-cloud-sun-rain", color: "#FFD700", emoji: "🌦️", img: "P5.png" }, // P5
+            { code: 71, label: "P6", icon: "fa-cloud", color: "#888", emoji: "☁️", img: "P6.png" },        // P6
+            { code: 51, label: "P7", icon: "fa-cloud-rain", color: "#4db8ff", emoji: "🌧️", img: "P7.png" }, // P7
+            { code: 61, label: "P8", icon: "fa-cloud-showers-heavy", color: "#4db8ff", emoji: "🌧️", img: "P8.png" }, // P8
+            { code: 65, label: "P9", icon: "fa-bolt", color: "#FFD700", emoji: "⚡", img: "P9.png" },       // P9
+            { code: 80, label: "P10", icon: "fa-cloud-meatball", color: "#FFD700", emoji: "⛈️", img: "P10.png" }, // P10
+            { code: 81, label: "P11", icon: "fa-snowflake", color: "#fff", emoji: "🌨️", img: "P11.png" }, // P11
+            { code: 95, label: "P12", icon: "fa-snowflake", color: "#fff", emoji: "❄️", img: "P12.png" }      // P12
         ];
 
         let map, markersGroup, drawingGroup, geoLayer = null, maskLayer = null, globalWeatherData = null, currentConfig = zoneConfigs.france;
