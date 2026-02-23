@@ -862,6 +862,10 @@
             cursor: crosshair !important;
         }
 
+        .cursor-draw .weather-marker {
+            pointer-events: none !important;
+        }
+
         .zone-label {
             background: rgba(0, 0, 0, 0.6);
             border: 2px solid currentColor;
@@ -2327,6 +2331,7 @@
         }
 
         function openIconPicker(cityIdx) {
+            if (isDrawingMode) return;
             currentPickingCityIndex = cityIdx;
             const bank = document.getElementById('icon-bank-select').value;
             const container = document.getElementById('picker-grid-content');
@@ -2347,6 +2352,7 @@
         }
 
         function openTempPicker(cityIdx, currentVal) {
+            if (isDrawingMode) return;
             currentPickingCityIndex = cityIdx;
             document.getElementById('manual-temp-input').value = currentVal;
             document.getElementById('modal-overlay').style.display = 'block';
