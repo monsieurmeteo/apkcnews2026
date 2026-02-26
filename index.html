@@ -1379,6 +1379,12 @@
                 </div>
                 <div id="manual-city-results" style="margin-top: 10px; font-size: 12px; color: #FFD700;"></div>
 
+                <label
+                    style="margin-top:10px; font-size:11px; color:#ff9933; cursor:pointer; display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="manual-highlight-check" onchange="renderManualCities()"> MISE EN AVANT
+                    MIN/MAX
+                </label>
+
                 <h3 style="margin-top:20px;">MODIFIER LES TITRES SUR CARTE</h3>
                 <input type="text" id="manual-title-main" placeholder="Forcer titre principal" class="search-input"
                     style="width:100%; margin-bottom:5px; box-sizing:border-box;" oninput="updateManualTitles()">
@@ -3522,6 +3528,7 @@
         }
 
         let manualCityMapGroup = null;
+        let addedManualCities = [];
 
         async function searchManualCity() {
             const code = document.getElementById('manual-city-search').value.trim();
@@ -3559,7 +3566,7 @@
                     b.onclick = () => {
                         const val = document.getElementById('manual-city-val').value;
                         if (!val) { resDiv.innerText = "Veuillez d'abord taper une valeur libre."; return; }
-                        addManualCityPin(c.nom.toUpperCase(), c.centre.coordinates[1], c.centre.coordinates[0], val);
+                        addManualCityToState(c.nom.toUpperCase(), c.centre.coordinates[1], c.centre.coordinates[0], val);
                         resDiv.innerHTML = "<span style='color:#2ecc71'>Point ajouté sur la carte !</span>";
                     };
                     resDiv.appendChild(b);
@@ -3569,52 +3576,95 @@
             }
         }
 
-        function addManualCityPin(name, lat, lon, val) {
+        function extractNumberForMinMax(valStr) {
+            const match = String(valStr).match(/^([-+]?[0-9.]+)/);
+            if (match) return parseFloat(match[1]);
+            return null;
+        }
+
+        function addManualCityToState(name, lat, lon, val) {
+            addedManualCities.push({ id: Date.now() + Math.random(), name, lat, lon, val });
+            renderManualCities();
+        }
+
+        function renderManualCities() {
             if (!manualCityMapGroup && map) {
                 manualCityMapGroup = L.layerGroup().addTo(map);
             }
+            manualCityMapGroup.clearLayers();
 
-            // Si la valeur contient un chiffre suivi de texte (ex: 25°C, 30 mm, 50 km/h), 
-            // on réduit la taille de l'unité pour que ça soit plus joli.
-            let valStr = val.toString().trim();
-            valStr = valStr.replace(/^([-+]?[0-9.$,]+)\s*([^0-9.,\s].*)$/i, '$1<span style="font-size:0.55em; margin-left:3px; vertical-align:10%;">$2</span>');
+            const highlightOn = document.getElementById('manual-highlight-check') && document.getElementById('manual-highlight-check').checked;
 
-            const html = `
-            <div style="position:relative; width:400px; height:100px;">
-                <!-- Le carré noir parfaitement au centre ANCHOR: [200, 50] -->
-                <div style="position:absolute; left:191px; top:41px; width:18px; height:18px; background:#000; border:2px solid #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.4); z-index:10; border-radius: 2px;"></div>
-                
-                <!-- La valeur à gauche -->
-                <div style="position:absolute; right:216px; top:28px; text-align:right;">
-                    <span style="font-size:40px; font-weight:900; color:#000; text-shadow: 3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff; line-height:1; white-space:nowrap;">${valStr}</span>
+            let currentMin = Infinity;
+            let currentMax = -Infinity;
+
+            if (highlightOn) {
+                addedManualCities.forEach(city => {
+                    const num = extractNumberForMinMax(city.val);
+                    if (num !== null) {
+                        if (num < currentMin) currentMin = num;
+                        if (num > currentMax) currentMax = num;
+                    }
+                });
+            }
+
+            addedManualCities.forEach(city => {
+                let colorCode = '#ffffff';
+
+                if (highlightOn) {
+                    const num = extractNumberForMinMax(city.val);
+                    if (num !== null) {
+                        if (num === currentMin && num !== currentMax) colorCode = '#4db8ff'; // Bleu
+                        else if (num === currentMax && num !== currentMin) colorCode = '#ff4d4d'; // Rouge
+                    }
+                }
+
+                // Taille de base des variables
+                let valStr = city.val.toString().trim();
+                valStr = valStr.replace(/^([-+]?[0-9.$,]+)\s*([^0-9.,\s].*)$/i, '$1<span style="font-size:0.55em; margin-left:2px; vertical-align:5%;">$2</span>');
+
+                const textColor = colorCode === '#ffffff' ? '#000000' : colorCode;
+                const textShadow = colorCode === '#ffffff'
+                    ? '2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff'
+                    : '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000';
+
+                const html = `
+                <div style="position:relative; width:400px; height:100px;">
+                    <!-- Le carré noir parfaitement au centre ANCHOR: [200, 50] -->
+                    <div style="position:absolute; left:191px; top:41px; width:18px; height:18px; background:#000; border:2px solid ${colorCode}; box-shadow: 0 4px 6px rgba(0,0,0,0.6); z-index:10; border-radius: 2px;"></div>
+                    
+                    <!-- La valeur à gauche -->
+                    <div style="position:absolute; right:216px; top:29px; text-align:right;">
+                        <span style="font-size:35px; font-weight:900; color:${textColor}; text-shadow: ${textShadow}; line-height:1; white-space:nowrap;">${valStr}</span>
+                    </div>
+
+                    <!-- Le nom de la ville en haut à droite -->
+                    <div style="position:absolute; left:200px; top:18px; width:200px; text-align:left;">
+                        <span style="font-size:16px; font-weight:900; color:#000; text-shadow: 2px 2px 0 #fff, -2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff; letter-spacing: -0.2px; display:inline-block; white-space:nowrap;">${city.name}</span>
+                    </div>
                 </div>
+                `;
+                const m = L.marker([city.lat, city.lon], {
+                    icon: L.divIcon({
+                        className: '',
+                        html: html,
+                        iconSize: [400, 100],
+                        iconAnchor: [200, 50]
+                    }),
+                    interactive: true
+                }).addTo(manualCityMapGroup);
 
-                <!-- Le nom de la ville en haut à droite -->
-                <div style="position:absolute; left:200px; top:16px; width:200px; text-align:left;">
-                    <span style="font-size:22px; font-weight:900; color:#000; text-shadow: 3px 3px 0 #fff, -3px -3px 0 #fff, 3px -3px 0 #fff, -3px 3px 0 #fff; letter-spacing: -0.5px; white-space:nowrap;">${name}</span>
-                </div>
-            </div>
-            `;
-            const m = L.marker([lat, lon], {
-                icon: L.divIcon({
-                    className: '',
-                    html: html,
-                    iconSize: [400, 100],
-                    iconAnchor: [200, 50]
-                }),
-                interactive: true
-            }).addTo(manualCityMapGroup);
-
-            // Allow deletion by clicking on it
-            m.on('click', () => {
-                manualCityMapGroup.removeLayer(m);
+                // Allow deletion by clicking on it
+                m.on('click', () => {
+                    addedManualCities = addedManualCities.filter(c => c.id !== city.id);
+                    renderManualCities();
+                });
             });
         }
 
         function clearManualAddedCities() {
-            if (manualCityMapGroup) {
-                manualCityMapGroup.clearLayers();
-            }
+            addedManualCities = [];
+            renderManualCities();
         }
 
         async function searchCommune() {
