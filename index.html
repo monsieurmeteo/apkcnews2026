@@ -125,6 +125,11 @@
         }
         */
 
+        .hide-zone-labels .zone-label {
+            visibility: hidden;
+            pointer-events: none;
+        }
+
         #map-container {
             flex-grow: 1;
             position: relative;
@@ -1562,6 +1567,11 @@
                             (PICTOS)
                         </label>
                         <label
+                            style="font-size:11px; color:#ff9933; cursor:pointer; display:flex; align-items:center; gap:10px">
+                            <input type="checkbox" id="hide-zone-labels-check" onchange="toggleZoneLabels()" checked>
+                            MASQUER LES "P"
+                        </label>
+                        <label
                             style="font-size:11px; color:#FFD700; cursor:pointer; display:flex; align-items:center; gap:10px">
                             <input type="checkbox" id="freeze-map-check" onchange="toggleMapFreeze()" checked> 🔒 FIGER
                             (EXPORT)
@@ -1597,7 +1607,7 @@
 
         <!-- ZONE DE TRAVAIL DROITE -->
         <div id="work-area">
-            <div id="capture-area" class="hide-cities simple-wind">
+            <div id="capture-area" class="hide-cities simple-wind hide-zone-labels">
                 <div id="map-container">
                     <div id="map"></div>
                     <div id="logo-on-map" class="site-logo">
@@ -1804,7 +1814,7 @@
 
         // MAPPING WMO OPEN-METEO VERS NOS 12 PICTOGRAMMES (P1 à P12)
         const wmoMapping = {
-            0: 1,   // P2 (Peu Nuageux) - Remplacé P1 (Soleil) par P2
+            0: 0,   // P1 (Beau temps)
             1: 1,   // P2 (Peu Nuageux)
             2: 2,   // P3 (Nuageux)
             3: 71,  // P6 (Couvert) - WMO 3 est Overcast
@@ -1827,19 +1837,19 @@
         // Les 'code' ici servent d'identifiants internes pour la logique de mapping ci-dessus.
         // P1=0, P2=1, P3=2, P4=3, P5=45, P6=71, P7=51, P8=61, P9=65, P10=80, P11=81, P12=95
         const weatherCodes = [
-            { code: 0, label: "P1", icon: "fa-sun", color: "#ff4d4d", emoji: "☀️", img: "P1.png" },       // P1 -> Rouge (Beau temps)
-            { code: 13, label: "P13", icon: "fa-cloud-sun", color: "#333333", emoji: "🌤️", img: "P13.png" }, // P13 -> Noir
-            { code: 1, label: "P2", icon: "fa-cloud-sun", color: "#333333", emoji: "🌤️", img: "P2.png" }, // P2 -> Noir
-            { code: 2, label: "P3", icon: "fa-cloud-sun", color: "#FFD700", emoji: "⛅", img: "P3.png" },     // P3 -> Jaune
-            { code: 3, label: "P4", icon: "fa-cloud", color: "#bf55ec", emoji: "☁️", img: "P4.png" },    // P4 -> Violet
-            { code: 45, label: "P5", icon: "fa-cloud-sun-rain", color: "#bf55ec", emoji: "🌦️", img: "P5.png" }, // P5 -> Violet
-            { code: 71, label: "P6", icon: "fa-cloud", color: "#bf55ec", emoji: "☁️", img: "P6.png" },        // P6 -> Violet
-            { code: 51, label: "P7", icon: "fa-cloud-rain", color: "#3498db", emoji: "🌧️", img: "P7.png" }, // P7 -> Bleu
-            { code: 61, label: "P8", icon: "fa-cloud-showers-heavy", color: "#3498db", emoji: "🌧️", img: "P8.png" }, // P8 -> Bleu
-            { code: 65, label: "P9", icon: "fa-bolt", color: "#e67e22", emoji: "⚡", img: "P9.png" },       // P9 -> Orange (Orages)
-            { code: 80, label: "P10", icon: "fa-cloud-meatball", color: "#e67e22", emoji: "⛈️", img: "P10.png" }, // P10 -> Orange
-            { code: 81, label: "P11", icon: "fa-snowflake", color: "#bdc3c7", emoji: "🌨️", img: "P11.png" }, // P11 -> Neige/Gris
-            { code: 95, label: "P12", icon: "fa-snowflake", color: "#bdc3c7", emoji: "❄️", img: "P12.png" },      // P12 -> Neige/Gris
+            { code: 0, label: "P1", icon: "fa-sun", color: "#FF0000", emoji: "☀️", img: "P1.png" },       // P1 -> Rouge
+            { code: 1, label: "P2", icon: "fa-cloud-sun", color: "#FF7F00", emoji: "🌤️", img: "P2.png" }, // P2 -> Orange
+            { code: 2, label: "P3", icon: "fa-cloud-sun", color: "#FFFF00", emoji: "⛅", img: "P3.png" },     // P3 -> Jaune
+            { code: 3, label: "P4", icon: "fa-cloud", color: "#7FFF00", emoji: "☁️", img: "P4.png" },    // P4 -> Vert clair
+            { code: 45, label: "P5", icon: "fa-cloud-sun-rain", color: "#00FF00", emoji: "🌦️", img: "P5.png" }, // P5 -> Vert
+            { code: 71, label: "P6", icon: "fa-cloud", color: "#00FF7F", emoji: "☁️", img: "P6.png" },        // P6 -> Turquoise
+            { code: 51, label: "P7", icon: "fa-cloud-rain", color: "#00FFFF", emoji: "🌧️", img: "P7.png" }, // P7 -> Cyan
+            { code: 61, label: "P8", icon: "fa-cloud-showers-heavy", color: "#007FFF", emoji: "🌧️", img: "P8.png" }, // P8 -> Bleu clair
+            { code: 65, label: "P9", icon: "fa-bolt", color: "#0000FF", emoji: "⚡", img: "P9.png" },       // P9 -> Bleu
+            { code: 80, label: "P10", icon: "fa-cloud-meatball", color: "#7F00FF", emoji: "⛈️", img: "P10.png" }, // P10 -> Violet
+            { code: 81, label: "P11", icon: "fa-snowflake", color: "#FF00FF", emoji: "🌨️", img: "P11.png" }, // P11 -> Magenta
+            { code: 95, label: "P12", icon: "fa-snowflake", color: "#FF007F", emoji: "❄️", img: "P12.png" },      // P12 -> Rose
+            { code: 13, label: "P13", icon: "fa-cloud-sun", color: "#333333", emoji: "🌤️", img: "P13.png" }, // P13 -> Noir (Pas dans la table mais on le garde)
             { code: 14, label: "P14", icon: "fa-smog", color: "#ccc", emoji: "🌫️", img: "P14.png" }      // P14 -> Brouillard
         ];
 
@@ -2257,7 +2267,7 @@
                 labelGroups[zLabel].points.push(L.latLng(d.lat, d.lon));
             });
 
-            const priorityColors = ['#ff4d4d', '#bf55ec', '#FFD700', '#3498db', '#e67e22', '#333333']; // Rouge > Violet > Jaune > Bleu > Orange > Noir
+            const priorityColors = ['#FF0000', '#FF7F00', '#FFFF00', '#7FFF00', '#00FF00', '#00FF7F', '#00FFFF', '#007FFF', '#0000FF', '#7F00FF', '#FF00FF', '#FF007F', '#333333'];
             const rawPolygonsByColor = {};
 
             // 2. Génération des enveloppes par cluster individuel
@@ -2885,6 +2895,13 @@
             }
         }
 
+        function toggleZoneLabels() {
+            const isHidden = document.getElementById('hide-zone-labels-check').checked;
+            const target = document.getElementById('capture-area');
+            if (isHidden) target.classList.add('hide-zone-labels');
+            else target.classList.remove('hide-zone-labels');
+        }
+
         function toggleCities() {
             const isHidden = document.getElementById('hide-cities-check').checked;
             const target = document.getElementById('capture-area');
@@ -3237,9 +3254,7 @@
                 const isSmall = (currentConfig.id === 'fra' || !currentConfig.id.includes('world'));
                 const autoZoningActive = document.getElementById('auto-zoning-check')?.checked;
 
-                if (!autoZoningActive) {
-                    createMarker(currentConfig.cities[idx], values[idx].val, param, wCode, bank, idx, isSmall, values[idx].wind, colorType, minV, maxV);
-                }
+                createMarker(currentConfig.cities[idx], values[idx].val, param, wCode, bank, idx, isSmall, values[idx].wind, colorType, minV, maxV);
 
                 allMarkerData.push({ city: currentConfig.cities[idx], val: values[idx].val, code: wCode, lat: currentConfig.cities[idx].lat, lon: currentConfig.cities[idx].lon });
             });
