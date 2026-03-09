@@ -138,6 +138,44 @@
             display: none !important;
         }
 
+        /* VILLES D'ANCRAGE : Semi-transparentes pour l'édition */
+        .is-anchor {
+            opacity: 0.85;
+            filter: none;
+            transition: opacity 0.3s;
+            border: 1px dashed #ffcc00;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .is-anchor:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.4);
+        }
+
+        /* SÉLECTION MULTIPLE */
+        .is-selected .marker-content-wrapper {
+            filter: drop-shadow(0 0 10px #FFD700) drop-shadow(0 0 5px #FFD700) !important;
+            transform: scale(1.15);
+            transition: transform 0.2s, filter 0.2s;
+            z-index: 1000;
+        }
+
+        .is-selected .city-label {
+            background: #FFD700 !important;
+            color: #000 !important;
+            font-weight: 900 !important;
+        }
+
+        /* Masquage forcé en mode export */
+        .exporting-mode .is-anchor {
+            display: none !important;
+        }
+
+        .clickable-helper {
+            display: none !important;
+        }
+
         #map-container {
             flex-grow: 1;
             position: relative;
@@ -1583,6 +1621,11 @@
                             MASQUER LES "P"
                         </label>
                         <label
+                            style="font-size:11px; color:#aaa; cursor:pointer; display:flex; align-items:center; gap:10px">
+                            <input type="checkbox" id="show-anchors-check" onchange="updateDisplay();" checked>
+                            VOIR LES PILIERS (ANCRAGES)
+                        </label>
+                        <label
                             style="font-size:11px; color:#FFD700; cursor:pointer; display:flex; align-items:center; gap:10px">
                             <input type="checkbox" id="freeze-map-check" onchange="toggleMapFreeze();" checked> 🔒 FIGER
                             (EXPORT)
@@ -1597,6 +1640,16 @@
 
                 <div class="sidebar-section">
                     <h3>Outils de Dessin</h3>
+
+                    <div id="selection-group"
+                        style="display:none; margin-bottom:10px; padding:10px; border:1px solid #FFD700; border-radius:8px; background: rgba(255, 215, 0, 0.1);">
+                        <div style="color:#FFD700; font-size:12px; font-weight:bold; margin-bottom:5px;">SÉLECTION
+                            (<span id="selected-count">0</span>)</div>
+                        <button class="sidebar-btn" onclick="clearMarkerSelection()"
+                            style="background:#FFD700; color:#000; font-weight:bold; padding:5px; font-size:11px; width:100%">VIDER
+                            LA SÉLECTION</button>
+                    </div>
+
                     <button id="btn-toggle-draw" onclick="toggleDrawingMode()" style="padding:10px; font-size:0.9rem">
                         <i class="fas fa-pen-nib"></i> ZONE MULTIPOINTS
                     </button>
@@ -1774,8 +1827,8 @@
 
     <script>
         const zoneConfigs = {
-            france: { id: 'fra', name: "FRANCE ENTIÈRE", geoUrl: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/france.geojson', padding: [15, 15, 15, 15], center: [46.5, 2.5], zoom: 6, cities: [{ name: "BREST", lat: 48.39, lon: -4.48 }, { name: "RENNES", lat: 48.11, lon: -1.67 }, { name: "CHERBOURG", lat: 49.63, lon: -1.62 }, { name: "ROUEN", lat: 49.44, lon: 1.10 }, { name: "PARIS", lat: 48.85, lon: 2.35 }, { name: "AMIENS", lat: 49.89, lon: 2.29 }, { name: "LILLE", lat: 50.62, lon: 3.05 }, { name: "REIMS", lat: 49.25, lon: 4.03 }, { name: "METZ", lat: 49.11, lon: 6.17 }, { name: "NANTES", lat: 47.21, lon: -1.55 }, { name: "TOURS", lat: 47.39, lon: 0.68 }, { name: "AUXERRE", lat: 47.79, lon: 3.57 }, { name: "CHAUMONT", lat: 48.11, lon: 5.14 }, { name: "STRASBOURG", lat: 48.57, lon: 7.75 }, { name: "BOURGES", lat: 47.08, lon: 2.39 }, { name: "BELFORT", lat: 47.63, lon: 6.86 }, { name: "LIMOGES", lat: 45.83, lon: 1.26 }, { name: "VICHY", lat: 46.12, lon: 3.42 }, { name: "CHALON/S.", lat: 46.78, lon: 4.85 }, { name: "LYON", lat: 45.76, lon: 4.83 }, { name: "PONTARLIER", lat: 46.90, lon: 6.35 }, { name: "LA ROCHELLE", lat: 46.16, lon: -1.15 }, { name: "BORDEAUX", lat: 44.83, lon: -0.57 }, { name: "BIARRITZ", lat: 43.48, lon: -1.56 }, { name: "TARBES", lat: 43.23, lon: 0.07 }, { name: "TOULOUSE", lat: 43.60, lon: 1.44 }, { name: "AURILLAC", lat: 44.92, lon: 2.44 }, { name: "MONTÉLIMAR", lat: 44.55, lon: 4.75 }, { name: "GAP", lat: 44.55, lon: 6.07 }, { name: "PERPIGNAN", lat: 42.69, lon: 2.89 }, { name: "MONTPELLIER", lat: 43.61, lon: 3.87 }, { name: "MARSEILLE", lat: 43.29, lon: 5.36 }, { name: "NICE", lat: 43.71, lon: 7.26 }, { name: "AJACCIO", lat: 41.92, lon: 8.73 }, { name: "BASTIA", lat: 42.69, lon: 9.45 }, { name: "ALENÇON", lat: 48.43, lon: 0.09 }, { name: "BOURG-ST-M.", lat: 45.62, lon: 6.77 }, { name: "DUNKERQUE", lat: 51.03, lon: 2.37, zoningOnly: true }, { name: "WISSEMBOURG", lat: 49.03, lon: 7.94, zoningOnly: true }, { name: "MENTON", lat: 43.77, lon: 7.49, zoningOnly: true }, { name: "HENDAYE", lat: 43.37, lon: -1.77, zoningOnly: true }, { name: "BONIFACIO", lat: 41.38, lon: 9.15, zoningOnly: true }, { name: "CALVI", lat: 42.56, lon: 8.75, zoningOnly: true }, { name: "BOHAIN-EN-V.", lat: 49.986, lon: 3.457, zoningOnly: true }, { name: "BOURGUÉBUS", lat: 49.122, lon: -0.298, zoningOnly: true }, { name: "LANGOËLAN", lat: 48.120, lon: -3.235, zoningOnly: true }, { name: "CLUSSAIS-POM.", lat: 46.185, lon: -0.032, zoningOnly: true }, { name: "TRENTELS", lat: 44.464, lon: 0.861, zoningOnly: true }, { name: "ALRANCE", lat: 44.131, lon: 2.735, zoningOnly: true }, { name: "ST-PAL-CHAL.", lat: 45.356, lon: 3.957, zoningOnly: true }, { name: "ST-AMAND-FION", lat: 48.812, lon: 4.609, zoningOnly: true }, { name: "ST-JOSSE", lat: 50.470, lon: 1.666, zoningOnly: true }, { name: "MATTEXEY", lat: 48.441, lon: 6.586, zoningOnly: true }, { name: "SOUGY", lat: 48.056, lon: 1.785, zoningOnly: true }, { name: "MÉZIÈRES-BR.", lat: 46.820, lon: 1.209, zoningOnly: true }, { name: "ST-EUPHRÔNE", lat: 47.479, lon: 4.381, zoningOnly: true }, { name: "LA FORCE", lat: 44.867, lon: 0.377, zoningOnly: true }, { name: "VOIRON", lat: 45.363, lon: 5.591, zoningOnly: true }, { name: "TOURTROL", lat: 43.069, lon: 1.799, zoningOnly: true }, { name: "BEAUCOURT-S.", lat: 49.794, lon: 2.586, zoningOnly: true }, { name: "BIERNÉ-VILL.", lat: 47.811, lon: -0.542, zoningOnly: true }, { name: "ST-MARD-MONT", lat: 48.922, lon: 4.849, zoningOnly: true }, { name: "BUXEROLLES", lat: 46.598, lon: 0.350, zoningOnly: true }, { name: "NAN-S-THIL", lat: 47.375, lon: 4.359, zoningOnly: true }, { name: "MAGNIÈRES", lat: 48.446, lon: 6.566, zoningOnly: true }, { name: "ST-SIMON", lat: 45.651, lon: -0.075, zoningOnly: true }, { name: "BEURIÈRES", lat: 45.441, lon: 3.775, zoningOnly: true }, { name: "IZEAUX", lat: 45.335, lon: 5.425, zoningOnly: true }, { name: "ARVIEUX", lat: 44.767, lon: 6.740, zoningOnly: true }, { name: "LHERM", lat: 43.431, lon: 1.222, zoningOnly: true }, { name: "ST-DENIS-GAST", lat: 48.942, lon: -1.329, zoningOnly: true }, { name: "CHANTEMERLE", lat: 48.614, lon: 3.661, zoningOnly: true }, { name: "HANGEST-S-S.", lat: 49.754, lon: 2.607, zoningOnly: true }, { name: "BEAULIEU-ARG.", lat: 49.031, lon: 5.068, zoningOnly: true }, { name: "GIRIVILLER", lat: 48.444, lon: 6.489, zoningOnly: true }, { name: "BOUÈRE", lat: 47.863, lon: -0.480, zoningOnly: true }, { name: "ROUILLAC", lat: 45.783, lon: -0.067, zoningOnly: true }, { name: "GACOGNE", lat: 47.231, lon: 3.869, zoningOnly: true }, { name: "FONTAINE-FR.", lat: 47.526, lon: 5.371, zoningOnly: true }, { name: "SORGES-PÉRIG.", lat: 45.308, lon: 0.873, zoningOnly: true }, { name: "ST-JEAN-AUB.", lat: 45.362, lon: 3.814, zoningOnly: true }, { name: "ARVIEU", lat: 44.193, lon: 2.661, zoningOnly: true }, { name: "CASTANS", lat: 43.408, lon: 2.484, zoningOnly: true }, { name: "RABAT-3-S.", lat: 42.857, lon: 1.554, zoningOnly: true }, { name: "MÉZIÈRES-S-S.", lat: 49.787, lon: 2.556, zoningOnly: true }, { name: "FLEURAC", lat: 45.008, lon: 1.004, zoningOnly: true }, { name: "FÉLINES", lat: 45.272, lon: 3.744, zoningOnly: true }, { name: "TULLINS", lat: 45.299, lon: 5.486, zoningOnly: true }, { name: "CHÂTRICES", lat: 49.042, lon: 4.938, zoningOnly: true }, { name: "GACOGNES", lat: 47.232, lon: 3.870, zoningOnly: true }, { name: "GAREIN", lat: 44.046, lon: -0.652, zoningOnly: true }, { name: "CAYEUX-S-S.", lat: 49.821, lon: 2.600, zoningOnly: true }, { name: "MÉRIGNAC", lat: 44.833, lon: -0.634, zoningOnly: true }, { name: "ST-PIERRE-CH.", lat: 45.247, lon: 3.898, zoningOnly: true }, { name: "MOIRANS", lat: 45.328, lon: 5.553, zoningOnly: true }, { name: "ST-DENIS-AJ.", lat: 47.792, lon: -0.442, zoningOnly: true }, { name: "ÉVRES", lat: 48.984, lon: 5.125, zoningOnly: true }, { name: "GENAC-BIGNAC", lat: 45.799, lon: 0.026, zoningOnly: true }, { name: "LA COLLANCELLE", lat: 47.174, lon: 3.642, zoningOnly: true }, { name: "ST-MAURICE-VING.", lat: 47.579, lon: 5.409, zoningOnly: true }, { name: "BROCAS", lat: 44.045, lon: -0.534, zoningOnly: true }, { name: "LE SOULIÉ", lat: 43.551, lon: 2.691, zoningOnly: true }, { name: "LES MÉES", lat: 44.029, lon: 5.975, zoningOnly: true }, { name: "PRÉVERANGES", lat: 46.434, lon: 2.256, zoningOnly: true }] },
-            hdf: { id: 'hdf', name: "HAUTS-DE-FRANCE", geoUrl: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions/hauts-de-france/region-hauts-de-france.geojson', padding: [60, 20, 20, 20], center: [49.9, 2.8], zoom: 8, cities: [{ name: "Château-Thierry", lat: 49.046, lon: 3.403 }, { name: "Laon", lat: 49.56, lon: 3.62 }, { name: "Saint-Quentin", lat: 49.85, lon: 3.29 }, { name: "Soissons", lat: 49.38, lon: 3.32 }, { name: "Vervins", lat: 49.83, lon: 3.91 }, { name: "Avesnes-sur-Helpe", lat: 50.12, lon: 3.93 }, { name: "Cambrai", lat: 50.17, lon: 3.23 }, { name: "Dunkerque", lat: 51.03, lon: 2.37 }, { name: "Hazebrouck", lat: 50.72, lon: 2.53 }, { name: "Lille", lat: 50.63, lon: 3.06 }, { name: "Valenciennes", lat: 50.36, lon: 3.52 }, { name: "Beauvais", lat: 49.43, lon: 2.08 }, { name: "Compiègne", lat: 49.41, lon: 2.82 }, { name: "Senlis", lat: 49.207, lon: 2.585 }, { name: "Feuquières", lat: 49.64, lon: 1.85 }, { name: "Rosoy-en-Multien", lat: 49.098, lon: 2.995 }, { name: "Arras", lat: 50.29, lon: 2.78 }, { name: "Berck", lat: 50.40, lon: 1.57 }, { name: "Calais", lat: 50.95, lon: 1.85 }, { name: "Renty", lat: 50.58, lon: 2.06 }, { name: "Saint-Pol-sur-Ternoise", lat: 50.38, lon: 2.33 }, { name: "Abbeville", lat: 50.11, lon: 1.83 }, { name: "Amiens", lat: 49.89, lon: 2.30 }, { name: "Estrées-Deniécourt", lat: 49.87, lon: 2.82 }, { name: "Montdidier", lat: 49.65, lon: 2.57 }] },
+            france: { id: 'fra', name: "FRANCE ENTIÈRE", geoUrl: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/france.geojson', padding: [15, 15, 15, 15], center: [46.5, 2.5], zoom: 6, cities: [{ name: "BREST", lat: 48.39, lon: -4.48 }, { name: "RENNES", lat: 48.11, lon: -1.67 }, { name: "CHERBOURG", lat: 49.63, lon: -1.62 }, { name: "ROUEN", lat: 49.44, lon: 1.10 }, { name: "PARIS", lat: 48.85, lon: 2.35 }, { name: "AMIENS", lat: 49.89, lon: 2.29 }, { name: "LILLE", lat: 50.62, lon: 3.05 }, { name: "REIMS", lat: 49.25, lon: 4.03 }, { name: "METZ", lat: 49.11, lon: 6.17 }, { name: "NANTES", lat: 47.21, lon: -1.55 }, { name: "TOURS", lat: 47.39, lon: 0.68 }, { name: "AUXERRE", lat: 47.79, lon: 3.57 }, { name: "CHAUMONT", lat: 48.11, lon: 5.14 }, { name: "STRASBOURG", lat: 48.57, lon: 7.75 }, { name: "BOURGES", lat: 47.08, lon: 2.39 }, { name: "BELFORT", lat: 47.63, lon: 6.86 }, { name: "LIMOGES", lat: 45.83, lon: 1.26 }, { name: "VICHY", lat: 46.12, lon: 3.42 }, { name: "CHALON/S.", lat: 46.78, lon: 4.85 }, { name: "LYON", lat: 45.76, lon: 4.83 }, { name: "PONTARLIER", lat: 46.90, lon: 6.35 }, { name: "LA ROCHELLE", lat: 46.16, lon: -1.15 }, { name: "BORDEAUX", lat: 44.83, lon: -0.57 }, { name: "BIARRITZ", lat: 43.48, lon: -1.56 }, { name: "TARBES", lat: 43.23, lon: 0.07 }, { name: "TOULOUSE", lat: 43.60, lon: 1.44 }, { name: "AURILLAC", lat: 44.92, lon: 2.44 }, { name: "MONTÉLIMAR", lat: 44.55, lon: 4.75 }, { name: "GAP", lat: 44.55, lon: 6.07 }, { name: "PERPIGNAN", lat: 42.69, lon: 2.89 }, { name: "MONTPELLIER", lat: 43.61, lon: 3.87 }, { name: "MARSEILLE", lat: 43.29, lon: 5.36 }, { name: "NICE", lat: 43.71, lon: 7.26 }, { name: "AJACCIO", lat: 41.92, lon: 8.73 }, { name: "BASTIA", lat: 42.69, lon: 9.45 }, { name: "ALENÇON", lat: 48.43, lon: 0.09 }, { name: "BOURG-ST-M.", lat: 45.62, lon: 6.77 }, { name: "Gorges du Tarn Causses", lat: 44.318, lon: 3.447, isAnchor: true }, { name: "Saint-Paul-de-Jarrat", lat: 42.913, lon: 1.636, isAnchor: true }, { name: "Puylagarde", lat: 44.298, lon: 1.837, isAnchor: true }, { name: "Novacelles", lat: 45.437, lon: 3.651, isAnchor: true }, { name: "Moirans", lat: 45.325, lon: 5.565, isAnchor: true }, { name: "Empuré", lat: 46.024, lon: 0.054, isAnchor: true }, { name: "La Roche-Posay", lat: 46.784, lon: 0.814, isAnchor: true }, { name: "Moux-en-Morvan", lat: 47.171, lon: 4.155, isAnchor: true }, { name: "Berné", lat: 47.994, lon: -3.391, isAnchor: true }, { name: "Attray", lat: 48.219, lon: 2.11, isAnchor: true }, { name: "Faux-Fresnay", lat: 48.748, lon: 3.921, isAnchor: true }, { name: "Fontenoy-la-Joute", lat: 48.453, lon: 6.66, isAnchor: true }, { name: "Clermont-en-Argonne", lat: 49.102, lon: 5.071, isAnchor: true }, { name: "Castine-en-Plaine", lat: 49.13, lon: -0.31, isAnchor: true }, { name: "Boulogne-sur-Mer", lat: 50.726, lon: 1.614, isAnchor: true }, { name: "Prémont", lat: 50.012, lon: 3.414, isAnchor: true }, { name: "Morannes-sur-Sarthe-Daumeray", lat: 47.644, lon: -0.416, isAnchor: true }] },
+            hdf: { id: 'hdf', name: "HAUTS-DE-FRANCE", geoUrl: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions/hauts-de-france/region-hauts-de-france.geojson', padding: [60, 20, 20, 20], center: [49.9, 2.8], zoom: 8, cities: [{ name: "Château-Thierry", lat: 49.046, lon: 3.403 }, { name: "Laon", lat: 49.56, lon: 3.62 }, { name: "Saint-Quentin", lat: 49.85, lon: 3.29 }, { name: "Soissons", lat: 49.38, lon: 3.32 }, { name: "Vervins", lat: 49.83, lon: 3.91 }, { name: "Avesnes-sur-Helpe", lat: 50.12, lon: 3.93 }, { name: "Cambrai", lat: 50.17, lon: 3.23 }, { name: "Dunkerque", lat: 51.03, lon: 2.37 }, { name: "Hazebrouck", lat: 50.72, lon: 2.53 }, { name: "Lille", lat: 50.63, lon: 3.06 }, { name: "Valenciennes", lat: 50.36, lon: 3.52 }, { name: "Beauvais", lat: 49.43, lon: 2.08 }, { name: "Compiègne", lat: 49.41, lon: 2.82 }, { name: "Senlis", lat: 49.207, lon: 2.585 }, { name: "Feuquières", lat: 49.64, lon: 1.85 }, { name: "Rosoy-en-Multien", lat: 49.098, lon: 2.995 }, { name: "Arras", lat: 50.29, lon: 2.78 }, { name: "Berck", lat: 50.40, lon: 1.57 }, { name: "Calais", lat: 50.95, lon: 1.85 }, { name: "Renty", lat: 50.58, lon: 2.06 }, { name: "Saint-Pol-sur-Ternoise", lat: 50.38, lon: 2.33 }, { name: "Abbeville", lat: 50.11, lon: 1.83 }, { name: "Amiens", lat: 49.89, lon: 2.30 }, { name: "Estrées-Deniécourt", lat: 49.87, lon: 2.82 }, { name: "Montdidier", lat: 49.65, lon: 2.57 }, { name: "Boulogne-sur-Mer", lat: 50.726, lon: 1.614 }] },
             normandie: { id: 'nor', name: "NORMANDIE", geoUrl: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions/normandie/region-normandie.geojson', padding: [60, 20, 20, 20], center: [49.1, 0.4], zoom: 8, cities: [{ name: "Bayeux", lat: 49.28, lon: -0.70 }, { name: "Caen", lat: 49.18, lon: -0.37 }, { name: "Clécy", lat: 48.91, lon: -0.48 }, { name: "Lisieux", lat: 49.14, lon: 0.22 }, { name: "Vire", lat: 48.84, lon: -0.89 }, { name: "Brionne", lat: 49.19, lon: 0.72 }, { name: "Étrépagny", lat: 49.30, lon: 1.61 }, { name: "Évreux", lat: 49.02, lon: 1.15 }, { name: "Giverny", lat: 49.07, lon: 1.53 }, { name: "Vesly", lat: 49.24, lon: 1.65 }, { name: "Verneuil-sur-Avre", lat: 48.74, lon: 0.93 }, { name: "Avranches", lat: 48.68, lon: -1.36 }, { name: "Cherbourg-Octeville", lat: 49.63, lon: -1.62 }, { name: "Coutances", lat: 49.05, lon: -1.44 }, { name: "Saint-Lô", lat: 49.11, lon: -1.09 }, { name: "Alençon", lat: 48.43, lon: 0.09 }, { name: "Argentan", lat: 48.74, lon: -0.02 }, { name: "Domfront", lat: 48.59, lon: -0.65 }, { name: "Mortagne-au-Perche", lat: 48.52, lon: 0.54 }, { name: "Villers-en-Ouche", lat: 48.86, lon: 0.57 }, { name: "Dieppe", lat: 49.92, lon: 1.07 }, { name: "Fécamp", lat: 49.75, lon: 0.37 }, { name: "Le Havre", lat: 49.49, lon: 0.10 }, { name: "Neufchâtel-en-Bray", lat: 49.73, lon: 1.44 }, { name: "Rouen", lat: 49.44, lon: 1.09 }, { name: "Le Tréport", lat: 50.06, lon: 1.37 }] },
             "ile-de-france": { id: 'idf', name: "ÎLE-DE-FRANCE", geoUrl: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions/ile-de-france/region-ile-de-france.geojson', padding: [60, 20, 20, 20], center: [48.8, 2.3], zoom: 9, cities: [{ name: "Paris", lat: 48.85, lon: 2.35 }, { name: "Chelles", lat: 48.88, lon: 2.59 }, { name: "Coulommiers", lat: 48.81, lon: 3.08 }, { name: "Fontainebleau", lat: 48.41, lon: 2.70 }, { name: "La Ferté-Gaucher", lat: 48.78, lon: 3.30 }, { name: "Meaux", lat: 48.96, lon: 2.89 }, { name: "Melun", lat: 48.54, lon: 2.66 }, { name: "Montereau-Fault-Yonne", lat: 48.38, lon: 2.95 }, { name: "Nangis", lat: 48.56, lon: 3.02 }, { name: "Nemours", lat: 48.27, lon: 2.69 }, { name: "Provins", lat: 48.56, lon: 3.30 }, { name: "Tournan-en-Brie", lat: 48.74, lon: 2.77 }, { name: "Houdan", lat: 48.79, lon: 1.60 }, { name: "Mantes-la-Jolie", lat: 48.99, lon: 1.72 }, { name: "Orgeval", lat: 48.92, lon: 1.98 }, { name: "Rambouillet", lat: 48.64, lon: 1.83 }, { name: "Versailles", lat: 48.80, lon: 2.13 }, { name: "Arpajon", lat: 48.59, lon: 2.25 }, { name: "Étampes", lat: 48.43, lon: 2.16 }, { name: "Évry", lat: 48.62, lon: 2.44 }, { name: "Milly-la-Forêt", lat: 48.40, lon: 2.47 }, { name: "Nanterre", lat: 48.89, lon: 2.20 }, { name: "Aulnay-sous-Bois", lat: 48.93, lon: 2.50 }, { name: "Bobigny", lat: 48.91, lon: 2.44 }, { name: "Créteil", lat: 48.79, lon: 2.46 }, { name: "Cergy", lat: 49.04, lon: 2.08 }, { name: "Magny-en-Vexin", lat: 49.16, lon: 1.79 }, { name: "Marly-la-Ville", lat: 49.08, lon: 2.50 }, { name: "Pontoise", lat: 49.05, lon: 2.10 }] },
             "grand-est": { id: 'ges', name: "GRAND EST", geoUrl: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions/grand-est/region-grand-est.geojson', padding: [60, 20, 20, 20], center: [48.6, 5.8], zoom: 7.2, cities: [{ name: "Charleville-Mézières", lat: 49.76, lon: 4.71 }, { name: "Rethel", lat: 49.51, lon: 4.36 }, { name: "Nogent-sur-Seine", lat: 48.49, lon: 3.50 }, { name: "Troyes", lat: 48.30, lon: 4.07 }, { name: "Vitry-le-Croisé", lat: 48.15, lon: 4.65 }, { name: "Châlons-en-Champagne", lat: 48.95, lon: 4.36 }, { name: "Épernay", lat: 49.04, lon: 3.95 }, { name: "Reims", lat: 49.25, lon: 4.03 }, { name: "Vitry-le-François", lat: 48.72, lon: 4.58 }, { name: "Chaumont", lat: 48.11, lon: 5.14 }, { name: "Langres", lat: 47.86, lon: 5.33 }, { name: "Saint-Dizier", lat: 48.63, lon: 4.95 }, { name: "Longwy", lat: 49.52, lon: 5.76 }, { name: "Lunéville", lat: 48.59, lon: 6.49 }, { name: "Nancy", lat: 48.69, lon: 6.18 }, { name: "Bar-le-Duc", lat: 48.77, lon: 5.16 }, { name: "Commercy", lat: 48.76, lon: 5.59 }, { name: "Verdun", lat: 49.16, lon: 5.38 }, { name: "Metz", lat: 49.11, lon: 6.17 }, { name: "Sarrebourg", lat: 48.73, lon: 7.05 }, { name: "Sarreguemines", lat: 49.11, lon: 7.06 }, { name: "Strasbourg", lat: 48.57, lon: 7.75 }, { name: "Wissembourg", lat: 49.03, lon: 7.94 }, { name: "Colmar", lat: 48.08, lon: 7.35 }, { name: "Mulhouse", lat: 47.75, lon: 7.33 }, { name: "Épinal", lat: 48.17, lon: 6.45 }, { name: "Neufchâteau", lat: 48.35, lon: 5.69 }, { name: "Saint-Dié-des-Vosges", lat: 48.29, lon: 6.95 }] },
@@ -1819,7 +1872,24 @@
                     { name: "LIMOGES", lat: 45.83, lon: 1.26 },
                     { name: "AURILLAC", lat: 44.92, lon: 2.44 },
                     { name: "CLERMONT-FERRAND", lat: 45.78, lon: 3.08 },
-                    { name: "BOURGES", lat: 47.08, lon: 2.39 }
+                    { name: "BOURGES", lat: 47.08, lon: 2.39 },
+                    { name: "Gorges du Tarn Causses", lat: 44.318, lon: 3.447, isAnchor: true },
+                    { name: "Saint-Paul-de-Jarrat", lat: 42.913, lon: 1.636, isAnchor: true },
+                    { name: "Puylagarde", lat: 44.298, lon: 1.837, isAnchor: true },
+                    { name: "Novacelles", lat: 45.437, lon: 3.651, isAnchor: true },
+                    { name: "Moirans", lat: 45.325, lon: 5.565, isAnchor: true },
+                    { name: "Empuré", lat: 46.024, lon: 0.054, isAnchor: true },
+                    { name: "La Roche-Posay", lat: 46.784, lon: 0.814, isAnchor: true },
+                    { name: "Moux-en-Morvan", lat: 47.171, lon: 4.155, isAnchor: true },
+                    { name: "Berné", lat: 47.994, lon: -3.391, isAnchor: true },
+                    { name: "Attray", lat: 48.219, lon: 2.11, isAnchor: true },
+                    { name: "Faux-Fresnay", lat: 48.748, lon: 3.921, isAnchor: true },
+                    { name: "Fontenoy-la-Joute", lat: 48.453, lon: 6.66, isAnchor: true },
+                    { name: "Clermont-en-Argonne", lat: 49.102, lon: 5.071, isAnchor: true },
+                    { name: "Castine-en-Plaine", lat: 49.13, lon: -0.31, isAnchor: true },
+                    { name: "Boulogne-sur-Mer", lat: 50.726, lon: 1.614, isAnchor: true },
+                    { name: "Prémont", lat: 50.012, lon: 3.414, isAnchor: true },
+                    { name: "Morannes-sur-Sarthe-Daumeray", lat: 47.644, lon: -0.416, isAnchor: true }
                 ]
             }
         };
@@ -1862,7 +1932,7 @@
             { code: 80, label: "P10", icon: "fa-cloud-meatball", color: "#7F00FF", emoji: "⛈️", img: "P10.png" }, // P10 -> Violet
             { code: 81, label: "P11", icon: "fa-snowflake", color: "#FF00FF", emoji: "🌨️", img: "P11.png" }, // P11 -> Magenta
             { code: 95, label: "P12", icon: "fa-snowflake", color: "#FF007F", emoji: "❄️", img: "P12.png" },      // P12 -> Rose
-            { code: 13, label: "P13", icon: "fa-cloud-sun", color: "#333333", emoji: "🌤️", img: "P13.png" }, // P13 -> Noir (Pas dans la table mais on le garde)
+            { code: 13, label: "P13", icon: "fa-cloud-sun", color: "#808080", emoji: "🌤️", img: "P13.png" }, // P13 -> Gris (Soleil Voilé)
             { code: 14, label: "P14", icon: "fa-smog", color: "#ccc", emoji: "🌫️", img: "P14.png" }      // P14 -> Brouillard
         ];
 
@@ -1871,6 +1941,7 @@
         let manualWeatherOverrides = {}; let manualTempOverrides = {}; let hiddenMarkers = new Set();
         let suppressedAutoZones = new Set();
         let currentPickingCityIndex = null;
+        let selectedMarkerIndices = new Set();
         let isDrawingMode = false, isFogMode = false, curvePoints = [], tempLine = null, tempMarkers = [], currentDrawColor = '#ff4d4d', manualFogMarkers = [], forceShowOverlays = false, isExporting = false;
 
         async function initLeafletMap() {
@@ -1939,8 +2010,6 @@
 
                     return;
                 }
-
-
 
                 if (!isDrawingMode) return;
 
@@ -2271,40 +2340,29 @@
                 });
             }
 
-            // --- RAFALES SURCOUCHES (visible UNIQUEMENT sur Carte 3 export) ---
-            if (showOverlays) {
+            const check = document.getElementById('auto-zoning-check');
+
+            // --- RAFALES SURCOUCHES (UNIQUEMENT pour la Carte 3 de l'EXPORT) ---
+            // On ne les affiche jamais en édition (car doublon avec les cartes vent), 
+            // mais on les force sur la 3ème carte de l'export triple (_SURCOUCHES).
+            // --- RAFALES SURCOUCHES (UNIQUEMENT pour la Carte 3 de l'EXPORT) ---
+            // On ne les affiche jamais en édition (car doublon avec les cartes vent), 
+            // mais on les force sur la 3ème carte de l'export triple (_SURCOUCHES).
+            if (showOverlays && gustsOverlay.length > 0) {
+                const bank = document.getElementById('icon-bank-select').value;
                 gustsOverlay.forEach(g => {
-                    const color = g.color;
-                    const html = `
-                        <div class="wind-box is-auto-gust" style="display:flex; flex-direction:column; align-items:center;">
-                            <div class="wind-values" style="font-size:32px; font-weight:900; color:${color}; text-shadow:2px 2px 0 #000;">
-                                ${g.val}
-                            </div>
-                            <div class="wind-arrow" style="transform: rotate(${g.dir + 135}deg); color:${color}; font-size:26px; filter:drop-shadow(2px 2px 0 #000); margin-top:-5px">
-                                <i class="fas fa-location-arrow"></i>
-                            </div>
-                        </div>
-                    `;
-                    L.marker([g.lat, g.lon], {
-                        icon: L.divIcon({
-                            className: 'weather-marker is-small type-gusts bank-classic',
-                            html: `<span class="city-label">${g.city || ''}</span><div class="marker-content-wrapper">${html}</div>`,
-                            iconSize: [80, 90],
-                            iconAnchor: [40, 70]
-                        }),
-                        interactive: false,
-                        pane: 'pictogramLabelPane'
-                    }).addTo(autoZoningGroup);
+                    const windData = { mean: g.mean, dir: g.dir };
+                    // Utiliser createMarker pour garantir un positionnement (ancrage) identique au mode Rafales standard
+                    createMarker(g.city, g.val, 'gusts', 0, bank, g.idx, true, windData, 'gusts', null, null, autoZoningGroup);
                 });
             }
 
-            const check = document.getElementById('auto-zoning-check');
             if (!check || !check.checked) return;
 
-            // Remapping P13 -> P2 dans le zonage automatique (P2 et P13 partagent la même zone)
-            const autoZoneLabel = (label) => label === 'P13' ? 'P2' : label;
+            // Plus de remapping P13 -> P2, P13 a sa propre zone avec sa couleur grise
+            const autoZoneLabel = (label) => label;
 
-            // 1. Groupement par LABEL (Chaque icône a maintenant sa propre zone, sauf exception P13/P2)
+            // 1. Groupement par LABEL (Chaque icône a maintenant sa propre zone)
             const labelGroups = {};
             markerData.forEach(d => {
                 const wConfig = weatherCodes.find(wc => wc.code == d.code) || weatherCodes[0];
@@ -2316,7 +2374,7 @@
                 labelGroups[zLabel].points.push(L.latLng(d.lat, d.lon));
             });
 
-            const priorityColors = ['#FF0000', '#FF7F00', '#FFFF00', '#7FFF00', '#00FF00', '#00FF7F', '#00FFFF', '#007FFF', '#0000FF', '#7F00FF', '#FF00FF', '#FF007F', '#333333'];
+            const priorityColors = ['#FF0000', '#FF7F00', '#FFFF00', '#7FFF00', '#00FF00', '#00FF7F', '#00FFFF', '#007FFF', '#0000FF', '#7F00FF', '#FF00FF', '#FF007F', '#808080'];
             const rawPolygonsByColor = {};
 
             // 2. Génération des enveloppes par cluster individuel
@@ -2419,7 +2477,7 @@
                 const labelText = item.label;
 
                 L.geoJSON(geojson, {
-                    style: { color: '#ffffff', weight: 2, fillColor: col, fillOpacity: 0.72, smoothFactor: 0.5 },
+                    style: { color: 'transparent', weight: 0, fillColor: col, fillOpacity: 0.72, smoothFactor: 0.5 },
                     onEachFeature: (feature, layer) => {
                         layer.isAutoZone = true;
 
@@ -2810,7 +2868,7 @@
         let lastFetchKey = ""; // Pour le cache des données
 
         const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes de validité
-        const CACHE_VERSION = "v2"; // Incrémenter pour forcer le rafraîchissement
+        const CACHE_VERSION = "v5"; // Incrémenter pour forcer le rafraîchissement
 
         async function fetchWeatherData(model) {
             const lats = currentConfig.cities.map(c => c.lat).join(',');
@@ -2978,21 +3036,76 @@
             }
         }
 
+        function toggleMarkerSelection(cityIdx) {
+            if (selectedMarkerIndices.has(cityIdx)) {
+                selectedMarkerIndices.delete(cityIdx);
+            } else {
+                selectedMarkerIndices.add(cityIdx);
+            }
+            updateSelectionUI();
+            updateDisplay();
+        }
+
+        function clearMarkerSelection() {
+            selectedMarkerIndices.clear();
+            updateSelectionUI();
+            updateDisplay();
+        }
+
+        function updateSelectionUI() {
+            const group = document.getElementById('selection-group');
+            const count = document.getElementById('selected-count');
+            if (selectedMarkerIndices.size > 0) {
+                group.style.display = 'block';
+                count.innerText = selectedMarkerIndices.size;
+            } else {
+                group.style.display = 'none';
+            }
+        }
+
+        function handleMarkerClick(cityIdx, event) {
+            if (isDrawingMode || isFogMode) return;
+
+            // Si on utilise Shift ou Ctrl, on gère la multi-sélection
+            if (event.shiftKey || event.ctrlKey || event.metaKey) {
+                toggleMarkerSelection(cityIdx);
+                return;
+            }
+
+            // Si on clique normalement :
+            // 1. Soit on ouvre pour la sélection actuelle si le point en fait partie
+            // 2. Soit on vide la sélection et on ouvre pour ce point
+            if (selectedMarkerIndices.size > 0 && !selectedMarkerIndices.has(cityIdx)) {
+                selectedMarkerIndices.clear();
+                updateSelectionUI();
+            }
+
+            openIconPicker(cityIdx);
+        }
+
         function openIconPicker(cityIdx) {
             if (isDrawingMode) return;
             currentPickingCityIndex = cityIdx;
+
             const bank = document.getElementById('icon-bank-select').value;
             const container = document.getElementById('picker-grid-content');
             container.innerHTML = '';
+
             weatherCodes.forEach(item => {
                 const div = document.createElement('div'); div.className = 'picker-item';
                 const iconHtml = getWeatherIcon(item.code, bank);
                 div.innerHTML = `<div class="weather-icon-large">${iconHtml}</div><span style="font-size:12px; font-weight:bold; color:#FFD700; margin-top:5px;">${item.label}</span>`;
                 div.onclick = () => {
-                    manualWeatherOverrides[cityIdx] = item.code;
-                    // Mise à jour locale uniquement, sans rechargement
-                    updateDisplay();
+                    if (selectedMarkerIndices.size > 0) {
+                        selectedMarkerIndices.forEach(idx => {
+                            manualWeatherOverrides[idx] = item.code;
+                        });
+                        clearMarkerSelection();
+                    } else {
+                        manualWeatherOverrides[cityIdx] = item.code;
+                    }
 
+                    updateDisplay();
                     closePickers();
                 };
                 container.appendChild(div);
@@ -3289,26 +3402,9 @@
             updateLegend(legendType, minV, maxV);
 
             const allMarkerData = [];
-            const placedMarkerPositions = [];
             globalWeatherData.forEach((loc, idx) => {
                 if (hiddenMarkers.has(idx)) return;
-                if (!values[idx]) return;
-
-                const city = currentConfig.cities[idx];
-                const screenPos = map.latLngToLayerPoint([city.lat, city.lon]);
-
-                let overlap = false;
-                const colX = isExporting ? 50 : 70; // Plus compact à l'export
-                const colY = isExporting ? 40 : 55;
-
-                for (const placed of placedMarkerPositions) {
-                    const dx = Math.abs(screenPos.x - placed.x);
-                    const dy = Math.abs(screenPos.y - placed.y);
-                    if (dx < colX && dy < colY) {
-                        overlap = true;
-                        break;
-                    }
-                }
+                if (!values[idx]) return; // Ville non retenue (non côtière en mode plage, etc.)
 
                 let hIdx = dayIdx * 24 + (period === 'morning' ? 9 : period === 'afternoon' ? 15 : period === 'evening' ? 20 : 12);
                 if (period === 'hourly') hIdx = hGlobal;
@@ -3318,31 +3414,31 @@
                 const lowCloud = loc.hourly.cloud_cover_low[hIdx];
                 const midCloud = loc.hourly.cloud_cover_mid[hIdx];
 
+                // Mapping vers nos 12 catégories
                 let mappedCode = wmoMapping[rawCode] !== undefined ? wmoMapping[rawCode] : rawCode;
 
+                // Logique dynamique Soleil Voilé (P13) :
+                // On l'active si on a bcp de nuages hauts (>30%) ET que les nuages bas/moyens sont peu présents (<40%)
+                // Même si le code brut est 3 (Couvert), s'il n'y a que des nuages hauts, c'est un voile.
                 if (rawCode <= 3 && highCloud > 30 && lowCloud < 40 && midCloud < 40) {
                     mappedCode = 13;
                 }
 
+                // Override manuel (prioritaire)
                 const wCode = manualWeatherOverrides[idx] !== undefined ? manualWeatherOverrides[idx] : mappedCode;
+
                 const isSmall = (currentConfig.id === 'fra' || !currentConfig.id.includes('world'));
+                const autoZoningActive = document.getElementById('auto-zoning-check')?.checked;
+                const showAnchors = document.getElementById('show-anchors-check')?.checked;
+
+                const city = currentConfig.cities[idx];
+                const shouldShowAnchor = (city.isAnchor && showAnchors && !isExporting);
+
+                if (!city.isAnchor || shouldShowAnchor) {
+                    createMarker(city, values[idx].val, param, wCode, bank, idx, isSmall, values[idx].wind, colorType, minV, maxV);
+                }
 
                 allMarkerData.push({ city: city, val: values[idx].val, code: wCode, lat: city.lat, lon: city.lon });
-
-                const isMajorCity = idx < 40; // Les 40 premières villes sont prioritaires
-                const exempted = [
-                    "MÉZIÈRES-S-S.", "FLEURAC", "FÉLINES", "TULLINS", "CHÂTRICES", "GACOGNES", "GAREIN", "FONTAINE-FR.",
-                    "CAYEUX-S-S.", "MÉRIGNAC", "ST-PIERRE-CH.", "MOIRANS", "ST-DENIS-AJ.", "ÉVRES",
-                    "GENAC-BIGNAC", "LA COLLANCELLE", "ST-MAURICE-VING.", "BROCAS", "LE SOULIÉ", "LES MÉES", "PRÉVERANGES"
-                ].includes(city.name) || isMajorCity;
-
-                // Si on exporte et que c'est une ville de zonage, on l'ignore TOTALEMENT (pas d'affichage, pas de collision)
-                if (isExporting && city.zoningOnly) return;
-
-                if (exempted || !overlap) {
-                    createMarker(city, values[idx].val, param, wCode, bank, idx, isSmall, values[idx].wind, colorType, minV, maxV);
-                    placedMarkerPositions.push(screenPos);
-                }
             });
 
             // Collecte des données de rafales pour l'overlay du zonage auto
@@ -3357,7 +3453,7 @@
                 globalWeatherData.forEach((loc, idx) => {
                     if (hiddenMarkers.has(idx)) return;
                     const city = currentConfig.cities[idx];
-                    if (!city || city.zoningOnly) return;
+                    if (!city) return;
 
                     let maxGust;
                     let currentH = hGlobal;
@@ -3390,7 +3486,7 @@
 
                         const dir = loc.hourly.winddirection_10m[hIdxForDir];
                         const col = getGradientColor(maxGust, 'gusts');
-                        gustsData.push({ lat: city.lat, lon: city.lon, val: maxGust, mean: roundedMean, dir: dir, color: col, city: city.name });
+                        gustsData.push({ city: city, idx: idx, val: maxGust, mean: roundedMean, dir: dir, color: col });
                     }
                 });
             }
@@ -3412,7 +3508,7 @@
                     // On prend toutes les villes de la config actuelle qui ne sont pas masquées
                     if (hiddenMarkers.has(idx)) return;
                     const city = currentConfig.cities[idx];
-                    if (!city || city.zoningOnly) return;
+                    if (!city || city.isAnchor) return;
 
                     // Calcul de la température MAX réelle de la journée (indépendamment de la période affichée)
                     const hStart = dayIdx * 24;
@@ -3538,32 +3634,26 @@
             logo.style.display = isChecked ? 'flex' : 'none';
         }
 
-        function createMarker(city, val, type, code, bank, idx, isSmall = false, windData = null, colorType = null, minV = null, maxV = null) {
+        function createMarker(city, val, type, code, bank, idx, isSmall = false, windData = null, colorType = null, minV = null, maxV = null, destinationGroup = null) {
+            // Pour les piliers de zonage, on ne veut que le pictogramme (pas la température qui pollue)
+            const effectiveType = (city && city.isAnchor) ? 'weather' : type;
+
             let color = getGradientColor(val, colorType || type);
             let extraStyle = "";
             const useHighlight = document.getElementById('temp-highlight-check').checked;
             const useDynamic = document.getElementById('temp-dynamic-check').checked;
             const isTempField = (type === 'temp' || type === 'weather_temp');
 
-            // Masquer les points de zonage lors de l'export de la carte "origine" (_PICTOS_T)
-            // On les garde visibles uniquement si on est en train de générer le zonage lui-même
-            const autoZoningActive = document.getElementById('auto-zoning-check')?.checked;
-            if (isExporting && city.zoningOnly && !autoZoningActive) return;
-
             // Logique de coloration spécifique pour les températures (Option demandée)
             if (isTempField) {
-                const autoZoningActive = document.getElementById('auto-zoning-check')?.checked;
                 if (useHighlight) {
                     if (val === minV && val !== maxV) {
                         color = '#4db8ff'; // Bleu pour la plus basse
                     } else if (val === maxV && val !== minV) {
                         color = '#ff4d4d'; // Rouge pour la plus haute
                     } else {
-                        // Adaptation de la couleur selon le fond (Zonage = fond blanc, Standard = fond sombre)
-                        color = autoZoningActive ? '#000000' : '#ffffff';
-                        extraStyle = autoZoningActive
-                            ? 'text-shadow: 2px 2px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;'
-                            : 'text-shadow: 2px 2px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;';
+                        color = '#000000'; // Noir pour les autres
+                        extraStyle = 'text-shadow: 2px 2px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;';
                     }
                 } else if (useDynamic) {
                     color = getDynamicColor(val, minV, maxV);
@@ -3596,26 +3686,28 @@
                         </div>
                     </div>
                 `;
-            } else if (type === 'weather') {
-                content = `<div onclick="openIconPicker(${idx})" class="weather-icon-large ${bankClass}">${getWeatherIcon(code, bank)}</div>`;
-            } else if (type === 'weather_temp') {
+            } else if (effectiveType === 'weather') {
+                content = `<div onclick="handleMarkerClick(${idx}, event)" class="weather-icon-large ${bankClass}">${getWeatherIcon(code, bank)}</div>`;
+            } else if (effectiveType === 'weather_temp') {
                 content = `
                     <div class="weather-temp-hybrid">
-                        <div onclick="openIconPicker(${idx})" class="icon-center-anchor ${bankClass}">${getWeatherIcon(code, bank)}</div>
+                        <div onclick="handleMarkerClick(${idx}, event)" class="icon-center-anchor ${bankClass}">${getWeatherIcon(code, bank)}</div>
                         <span class="temp-side-aligned" style="color:${color}; ${extraStyle}" onclick="openTempPicker(${idx}, ${val})">${val}</span>
                     </div>`;
             } else {
                 content = `<div class="icon-center-anchor" style="display:flex; align-items:center; justify-content:center;"><span class="temp-standalone" style="color:${color}; ${extraStyle}" onclick="openTempPicker(${idx}, ${val})">${val}</span></div>`;
             }
 
-            const html = `<div class="weather-marker ${isSmall ? 'is-small' : ''} type-${type}" style="${!isExporting && city.zoningOnly ? 'opacity: 0.6; border: 1px dashed #FFD700; border-radius: 4px;' : ''}">
-                <span class="city-label">${city.name}${!isExporting && city.zoningOnly ? ' (ZONAGE)' : ''}</span>
+            const isSelected = selectedMarkerIndices.has(idx);
+
+            const html = `<div class="weather-marker ${isSmall ? 'is-small' : ''} type-${effectiveType} ${city.isAnchor ? 'is-anchor' : ''} ${isSelected ? 'is-selected' : ''}">
+                <span class="city-label">${city.name}${city.isAnchor ? ' (PILIER)' : ''}</span>
                 <div class="marker-content-wrapper">${content}</div>
             </div>`;
 
             // CALCUL ANCRAGE DYNAMIQUE (Ultra-Précision)
             let iconH = isSmall ? 65 : 100; // Augmenté pour éviter le décalage (était 90)
-            if (type === 'weather' || type === 'temp' || type.startsWith('precip')) {
+            if (effectiveType === 'weather' || effectiveType === 'temp' || effectiveType.startsWith('precip')) {
                 iconH = isSmall ? 80 : 120; // Massive pour tous les modes solos
             }
 
@@ -3624,7 +3716,7 @@
             const totalH = labelH + margin + iconH;
             let anchorY = labelH + margin + (iconH / 2);
 
-            if (type.startsWith('gusts')) {
+            if (effectiveType.startsWith('gusts')) {
                 const isSimple = document.getElementById('simple-wind-check').checked;
                 const arrowH = isSmall ? 26 : 38;
                 const valH = isSmall ? 32 : 52;
@@ -3642,7 +3734,7 @@
                     iconSize: [isSmall ? 100 : 160, totalH],
                     iconAnchor: [isSmall ? 50 : 80, anchorY]
                 })
-            }).addTo(markersGroup);
+            }).addTo(destinationGroup || markersGroup);
         }
 
         function updateLegend(type, min, max) {
@@ -4312,8 +4404,6 @@
             const palette = document.getElementById('draw-palette');
             const wasPaletteVisible = palette.style.display !== 'none';
             const autoZoningCheck = document.getElementById('auto-zoning-check');
-            const styleSelect = document.getElementById('map-style-select');
-            const iconBankSelect = document.getElementById('icon-bank-select');
             const isAutoZoningActive = autoZoningCheck && autoZoningCheck.checked;
 
             palette.style.display = 'none';
@@ -4329,6 +4419,8 @@
                 flexShrink: captureArea.style.flexShrink, aspectRatio: captureArea.style.aspectRatio,
                 overflow: captureArea.style.overflow
             };
+
+            document.body.classList.add('exporting-mode');
 
             const originalScrollX = window.scrollX;
             const originalScrollY = window.scrollY;
@@ -4427,34 +4519,16 @@
 
                     // --- CARTE 2 : PICTOS + T° (Suffix _PICTOS_T) ---
                     document.getElementById('loading-text').innerText = "GÉNÉRATION PICTOS + T°...";
-
-                    // Sauvegarde des réglages utilisateur pour les restaurer après
-                    const savedStyle = styleSelect.value;
-                    const savedHighlight = document.getElementById('temp-highlight-check').checked;
-                    const savedHideCities = document.getElementById('hide-cities-check').checked;
-                    const savedIconBank = iconBankSelect.value;
-
-                    // Application forcée du look "ORIGINE"
                     autoZoningCheck.checked = false;
                     hideMarkersCheck.checked = false;
-                    styleSelect.value = 'periwinkle';
-                    document.getElementById('temp-highlight-check').checked = false;
-                    document.getElementById('hide-cities-check').checked = true;
-                    iconBankSelect.value = 'custom';
-
+                    // fogGroup toujours masqué
                     toggleMarkers();
                     await updateGeoJson();
                     await updateDisplay();
+
+
+
                     await performCapture("_PICTOS_T");
-
-                    // Restauration immédiate de votre environnement de travail
-                    styleSelect.value = savedStyle;
-                    document.getElementById('temp-highlight-check').checked = savedHighlight;
-                    document.getElementById('hide-cities-check').checked = savedHideCities;
-                    iconBankSelect.value = savedIconBank;
-                    toggleMarkers();
-                    await updateGeoJson();
-                    await updateDisplay();
 
                     // --- CARTE 3 : SURCOUCHES ---
                     const dayIdxValue = parseInt(document.getElementById('day-select').value);
@@ -4483,6 +4557,8 @@
                     hideMarkersCheck.checked = wasHideMarkersChecked;
                     showAvgCheck.checked = wasAvgChecked;
                     forceShowOverlays = false;
+                    isExporting = false;
+                    document.body.classList.remove('exporting-mode');
                     if (fogGroup && !map.hasLayer(fogGroup)) fogGroup.addTo(map); // Toujours réafficher
                     toggleMarkers();
                     await updateGeoJson();
