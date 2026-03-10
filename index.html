@@ -1466,12 +1466,9 @@
             <div id="map-controls-group">
                 <div class="sidebar-section">
                     <h3>RÉGION & VILLES</h3>
-                    <button onclick="document.getElementById('zone-select').value='cnews'; handleZoneChange();"
-                        style="width:100%; margin-bottom:8px; padding:10px; background:linear-gradient(135deg,#e8a020,#c0392b); color:#fff; font-weight:900; font-size:15px; border:none; border-radius:8px; cursor:pointer; letter-spacing:2px; box-shadow:0 2px 8px rgba(230,100,0,0.5);">
-                        📺 CNEWS
-                    </button>
                     <select id="zone-select" onchange="handleZoneChange();">
-                        <option value="france">🌎 FRANCE ENTIÈRE</option>
+                        <option value="france_pictos" selected>🗺️ FRANCE - PICTOS</option>
+                        <option value="france">🌎 FRANCE ENTIÈRE (AUTO)</option>
                         <option value="hdf">🏘️ HAUTS-DE-FRANCE</option>
                         <option value="normandie">🍏 NORMANDIE</option>
                         <option value="ile-de-france">🗼 ÎLE-DE-FRANCE</option>
@@ -1485,7 +1482,6 @@
                         <option value="pdl">🌾 PAYS DE LA LOIRE</option>
                         <option value="cvl">🏰 CENTRE-VAL DE LOIRE</option>
                         <option value="corse">⛰️ CORSE</option>
-                        <option value="cnews">📺 CNEWS</option>
                     </select>
                 </div>
 
@@ -1841,6 +1837,47 @@
             pdl: { id: 'pdl', name: "PAYS DE LA LOIRE", geoUrl: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions/pays-de-la-loire/region-pays-de-la-loire.geojson', padding: [60, 20, 20, 20], center: [47.5, -0.6], zoom: 7.8, cities: [{ name: "Blain", lat: 47.47, lon: -1.76 }, { name: "Châteaubriant", lat: 47.71, lon: -1.37 }, { name: "NANTES", lat: 47.21, lon: -1.55 }, { name: "Saint-Nazaire", lat: 47.27, lon: -2.21 }, { name: "Angers", lat: 47.47, lon: -0.55 }, { name: "Cholet", lat: 47.06, lon: -0.87 }, { name: "Nyoiseau", lat: 47.71, lon: -0.91 }, { name: "Saumur", lat: 47.26, lon: -0.07 }, { name: "Ernée", lat: 48.30, lon: -0.93 }, { name: "Javron-les-Chapelles", lat: 48.41, lon: -0.34 }, { name: "Laval", lat: 48.07, lon: -0.77 }, { name: "La Ferté-Bernard", lat: 48.18, lon: 0.65 }, { name: "La Flèche", lat: 47.70, lon: -0.07 }, { name: "Le Mans", lat: 48.00, lon: 0.19 }, { name: "Mamers", lat: 48.35, lon: 0.37 }, { name: "Saint-Denis-d'Orques", lat: 48.02, lon: -0.27 }, { name: "Challans", lat: 46.84, lon: -1.88 }, { name: "Fontenay-le-Comte", lat: 46.46, lon: -0.80 }, { name: "L'Île-d'Yeu", lat: 46.72, lon: -2.34 }, { name: "La Roche-sur-Yon", lat: 46.67, lon: -1.42 }, { name: "La Tranche-sur-Mer", lat: 46.34, lon: -1.43 }] },
             cvl: { id: 'cvl', name: "CENTRE-VAL DE LOIRE", geoUrl: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions/centre-val-de-loire/region-centre-val-de-loire.geojson', padding: [60, 20, 20, 20], center: [47.5, 1.8], zoom: 7.8, cities: [{ name: "Argent-sur-Sauldre", lat: 47.56, lon: 2.45 }, { name: "Bourges", lat: 47.08, lon: 2.39 }, { name: "Saint-Amand-Montrond", lat: 46.72, lon: 2.50 }, { name: "Sancerre", lat: 47.33, lon: 2.84 }, { name: "Chartres", lat: 48.44, lon: 1.48 }, { name: "Châteaudun", lat: 48.07, lon: 1.33 }, { name: "Dreux", lat: 48.73, lon: 1.36 }, { name: "Nogent-le-Rotrou", lat: 48.32, lon: 0.82 }, { name: "Châteauroux", lat: 46.81, lon: 1.69 }, { name: "Écueillé", lat: 47.08, lon: 1.34 }, { name: "Éguzon-Chantôme", lat: 46.44, lon: 1.58 }, { name: "Le Blanc", lat: 46.63, lon: 1.06 }, { name: "Chinon", lat: 47.16, lon: 0.24 }, { name: "Le Grand-Pressigny", lat: 46.92, lon: 0.80 }, { name: "Tours", lat: 47.39, lon: 0.68 }, { name: "Blois", lat: 47.58, lon: 1.33 }, { name: "Romorantin-Lanthenay", lat: 47.35, lon: 1.74 }, { name: "Vendôme", lat: 47.79, lon: 1.06 }, { name: "Montargis", lat: 47.99, lon: 2.73 }, { name: "Orléans", lat: 47.90, lon: 1.90 }, { name: "Pithiviers", lat: 48.17, lon: 2.25 }] },
             corse: { id: 'cor', name: "CORSE", geoUrl: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/regions/corse/region-corse.geojson', padding: [60, 20, 20, 20], center: [42.1, 9.1], zoom: 8.5, cities: [{ name: "Ajaccio", lat: 41.92, lon: 8.73 }, { name: "Figari", lat: 41.48, lon: 9.09 }, { name: "Porto-Vecchio", lat: 41.59, lon: 9.27 }, { name: "Sartène", lat: 41.62, lon: 8.97 }, { name: "Zévaco", lat: 41.89, lon: 9.05 }, { name: "Bastia", lat: 42.69, lon: 9.45 }, { name: "Calvi", lat: 42.56, lon: 8.75 }, { name: "Cervione", lat: 42.33, lon: 9.49 }, { name: "Corte", lat: 42.30, lon: 9.15 }, { name: "Pietralba", lat: 42.54, lon: 9.18 }, { name: "Prunelli-di-Fiumorbo", lat: 42.01, lon: 9.32 }, { name: "Rogliano", lat: 42.95, lon: 9.41 }, { name: "Vico", lat: 42.16, lon: 8.80 }] },
+            france_pictos: {
+                id: 'fra_pic', name: "FRANCE - PICTOS", geoUrl: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/france.geojson', padding: [15, 15, 15, 15], center: [46.5, 2.5], zoom: 6, cities: [
+                    { name: "BREST", lat: 48.39, lon: -4.48 },
+                    { name: "RENNES", lat: 48.11, lon: -1.67 },
+                    { name: "CHERBOURG", lat: 49.63, lon: -1.62 },
+                    { name: "ROUEN", lat: 49.44, lon: 1.10 },
+                    { name: "PARIS", lat: 48.85, lon: 2.35 },
+                    { name: "AMIENS", lat: 49.89, lon: 2.29 },
+                    { name: "LILLE", lat: 50.62, lon: 3.05 },
+                    { name: "REIMS", lat: 49.25, lon: 4.03 },
+                    { name: "METZ", lat: 49.11, lon: 6.17 },
+                    { name: "NANTES", lat: 47.21, lon: -1.55 },
+                    { name: "TOURS", lat: 47.39, lon: 0.68 },
+                    { name: "AUXERRE", lat: 47.79, lon: 3.57 },
+                    { name: "CHAUMONT", lat: 48.11, lon: 5.14 },
+                    { name: "STRASBOURG", lat: 48.57, lon: 7.75 },
+                    { name: "BOURGES", lat: 47.08, lon: 2.39 },
+                    { name: "BELFORT", lat: 47.63, lon: 6.86 },
+                    { name: "LIMOGES", lat: 45.83, lon: 1.26 },
+                    { name: "VICHY", lat: 46.12, lon: 3.42 },
+                    { name: "CHALON/S.", lat: 46.78, lon: 4.85 },
+                    { name: "LYON", lat: 45.76, lon: 4.83 },
+                    { name: "PONTARLIER", lat: 46.90, lon: 6.35 },
+                    { name: "LA ROCHELLE", lat: 46.16, lon: -1.15 },
+                    { name: "BORDEAUX", lat: 44.83, lon: -0.57 },
+                    { name: "BIARRITZ", lat: 43.48, lon: -1.56 },
+                    { name: "TARBES", lat: 43.23, lon: 0.07 },
+                    { name: "TOULOUSE", lat: 43.60, lon: 1.44 },
+                    { name: "AURILLAC", lat: 44.92, lon: 2.44 },
+                    { name: "MONTÉLIMAR", lat: 44.55, lon: 4.75 },
+                    { name: "GAP", lat: 44.55, lon: 6.07 },
+                    { name: "PERPIGNAN", lat: 42.69, lon: 2.89 },
+                    { name: "MONTPELLIER", lat: 43.61, lon: 3.87 },
+                    { name: "MARSEILLE", lat: 43.29, lon: 5.36 },
+                    { name: "NICE", lat: 43.71, lon: 7.26 },
+                    { name: "AJACCIO", lat: 41.92, lon: 8.73 },
+                    { name: "BASTIA", lat: 42.69, lon: 9.45 },
+                    { name: "ALENÇON", lat: 48.43, lon: 0.09 },
+                    { name: "BOURG-ST-M.", lat: 45.62, lon: 6.77 }
+                ]
+            },
             cnews: {
                 id: 'cnews', name: "CNEWS", geoUrl: 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/france.geojson', padding: [15, 15, 15, 15], center: [46.5, 2.5], zoom: 6, cities: [
                     { name: "LILLE", lat: 50.62, lon: 3.05 },
@@ -1936,7 +1973,7 @@
             { code: 14, label: "P14", icon: "fa-smog", color: "#ccc", emoji: "🌫️", img: "P14.png" }      // P14 -> Brouillard
         ];
 
-        let map, markersGroup, drawingGroup, autoZoningGroup, fogGroup, geoLayer = null, maskLayer = null, globalWeatherData = null, currentConfig = zoneConfigs.france, globalGeoBoundary = null, globalBoundaryPolygon = null;
+        let map, markersGroup, drawingGroup, autoZoningGroup, fogGroup, geoLayer = null, maskLayer = null, globalWeatherData = null, currentConfig = zoneConfigs.france_pictos, globalGeoBoundary = null, globalBoundaryPolygon = null;
         let lastZoningMarkers = [], lastZoningGusts = [];
         let manualWeatherOverrides = {}; let manualTempOverrides = {}; let hiddenMarkers = new Set();
         let suppressedAutoZones = new Set();
@@ -2637,7 +2674,7 @@
             }
 
             // Pour la France entière, on doit parfois recharger le GeoJSON (silhouette vs régions)
-            const isFrance = currentConfig.id === 'fra' || currentConfig.id === 'cnews';
+            const isFrance = currentConfig.id === 'fra' || currentConfig.id === 'cnews' || currentConfig.id === 'fra_pic';
             const showsSilhouette = geoLayer && geoLayer.isClassicSilhouette;
             const needsReload = isFrance && ((styleMode === 'classic') !== showsSilhouette);
 
@@ -2664,7 +2701,7 @@
             const autoZoningNow = document.getElementById('auto-zoning-check')?.checked;
             // En mode zonage auto, on force le masque extérieur blanc quelle que soit la checkbox
             const maskExterior = autoZoningNow || document.getElementById('mask-exterior-check').checked;
-            const isFrance = currentConfig.id === 'fra' || currentConfig.id === 'cnews';
+            const isFrance = currentConfig.id === 'fra' || currentConfig.id === 'cnews' || currentConfig.id === 'fra_pic';
 
             // Background color for mask
             const mapContainer = document.getElementById('map-container');
@@ -2821,6 +2858,23 @@
             }
 
             currentConfig = zoneConfigs[selectValue];
+
+            // Pour france_pictos : reproduire exactement l'état de la 2ème carte de l'export
+            // autoZoning OFF + markers visibles + mode weather_temp + pas d'ancres
+            if (selectValue === 'france_pictos') {
+                const autoZoningCheck = document.getElementById('auto-zoning-check');
+                const hideMarkersCheck = document.getElementById('hide-markers-check');
+                const showAnchorsCheck = document.getElementById('show-anchors-check');
+                const paramSelect = document.getElementById('param-select');
+                if (autoZoningCheck) autoZoningCheck.checked = false;
+                if (hideMarkersCheck) hideMarkersCheck.checked = false;
+                if (showAnchorsCheck) showAnchorsCheck.checked = false;
+                if (paramSelect && paramSelect.value !== 'weather_temp') paramSelect.value = 'weather_temp';
+            } else if (selectValue === 'france' || selectValue === 'cnews') {
+                // Pour la France entière : re-cocher les piliers par défaut
+                const showAnchorsCheck = document.getElementById('show-anchors-check');
+                if (showAnchorsCheck) showAnchorsCheck.checked = true;
+            }
 
             await updateGeoJson();
             await handleDayChange(preventClear);
