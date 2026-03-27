@@ -4800,7 +4800,7 @@
                         }
 
                         const formattedCityName = cityName.split('-').map(part => part.split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1).toLowerCase()).join(' ')).join('-');
-                        csvLines.push(`${formattedCityName};${formattedDate};${minVal !== null ? Math.round(minVal) : ""};${maxVal !== null ? Math.round(maxVal) : ""};${roundedGust}`);
+                        csvLines.push(`"${formattedCityName}";${formattedDate};${minVal !== null ? Math.round(minVal) : ""};${maxVal !== null ? Math.round(maxVal) : ""};${roundedGust}`);
                     });
                 });
 
@@ -4810,7 +4810,7 @@
                 const link = document.createElement("a");
                 const ts = new Date().toISOString().split('T')[0];
                 link.setAttribute("href", downloadUrl);
-                link.setAttribute("download", `Export_Meteo_7Jours_31Villes_${ts}.csv`);
+                link.setAttribute("download", `meteo_export_complet_${ts}.csv`);
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
