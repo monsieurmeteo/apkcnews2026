@@ -1645,13 +1645,13 @@
                                 <i class="fas fa-mouse-pointer"></i> ACTIVER POSE MANUELLE
                             </button>
                         </div>
-                        <!-- AIDE AU QUADRILLAGE -->
-                        <div id="grid-helper-ui" style="display:flex; flex-direction:column; gap:5px; margin-top:5px; padding:8px; background:rgba(255,255,255,0.05); border-radius:6px; border:1px solid #4db8ff;">
-                            <div style="font-size:10px; color:#4db8ff; font-weight:bold; margin-bottom:2px;">AIDE AU QUADRILLAGE</div>
-                            <button id="btn-toggle-grid" onclick="toggleGridHelp()" style="padding:8px; font-size:0.8rem; background:#222; border-radius:4px; color:#4db8ff; border:1px solid #4db8ff; width:100%; font-weight:bold;">
-                                <i class="fas fa-crosshairs"></i> CAPTURER UN POINT
+                        <!-- AIDE AU QUADRILLAGE (GLOBAL) -->
+                        <div id="grid-helper-ui" style="display:flex; flex-direction:column; gap:5px; margin-top:10px; padding:10px; background:rgba(77,184,255,0.1); border-radius:6px; border:1px solid #4db8ff; box-shadow: inset 0 0 10px rgba(77,184,255,0.1);">
+                            <div style="font-size:10px; color:#4db8ff; font-weight:bold; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.5px;">Outil de Quadrillage</div>
+                            <button id="btn-toggle-grid" onclick="toggleGridHelp()" style="padding:10px; font-size:0.85rem; background:#222; border-radius:4px; color:#4db8ff; border:1px solid #4db8ff; width:100%; font-weight:bold; text-transform:uppercase; transition: all 0.3s; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                                <i class="fas fa-crosshairs"></i> Activer Capture Point
                             </button>
-                            <div id="grid-output" style="font-size:9px; color:#fff; word-break:break-all; display:none; padding:5px; background:#000; border-radius:4px; margin-top:4px; font-family:monospace;"></div>
+                            <div id="grid-output" style="font-size:9px; color:#fff; word-break:break-all; display:none; padding:8px; background:rgba(0,0,0,0.8); border: 1px solid #333; border-radius:4px; margin-top:6px; font-family: 'Courier New', monospace; line-height:1.4;"></div>
                         </div>
                         <label
                             style="font-size:11px; color:#FFD700; cursor:pointer; display:flex; align-items:center; gap:10px">
@@ -2168,6 +2168,7 @@
         let suppressedAutoZones = new Set();
         let currentPickingCityIndex = null;
         let selectedMarkerIndices = new Set();
+        let isDrawingMode = false;
         let isFogMode = false;
         let isGridHelp = false;
 
@@ -2230,15 +2231,27 @@
             // LOGIQUE CLIC CARTE (DESSIN OU BROUILLARD)
             map.on('click', (e) => {
                 if (isGridHelp) {
-                    const name = prompt("NOM DE LA VILLE ?", "Ville");
-                    if (name) {
-                        const obj = `{ "name": "${name}", "lat": ${e.latlng.lat.toFixed(4)}, "lon": ${e.latlng.lng.toFixed(4)}, "labelPos": "top" },`;
-                        const out = document.getElementById('grid-output');
-                        out.innerText = obj;
-                        out.style.display = 'block';
-                        navigator.clipboard.writeText(obj).catch(() => {});
-                        console.log("GRID POINT:", obj);
-                    }
+                    const lat = e.latlng.lat;
+                    const lon = e.latlng.lng;
+                    const out = document.getElementById('grid-output');
+                    out.style.display = 'block';
+                    out.innerText = "RECHERCHE DE LA COMMUNE...";
+
+                    fetch(`https://geo.api.gouv.fr/communes?lat=${lat}&lon=${lon}&fields=nom,code&limit=1`)
+                        .then(r => r.json())
+                        .then(data => {
+                            let name = "Ville";
+                            if (data && data.length > 0) name = data[0].nom.toUpperCase();
+                            const obj = `{ "name": "${name}", "lat": ${lat.toFixed(4)}, "lon": ${lon.toFixed(4)}, "labelPos": "top" },`;
+                            out.innerText = obj;
+                            navigator.clipboard.writeText(obj).catch(() => {});
+                            console.log("GRID POINT CAPTURED:", obj);
+                        })
+                        .catch(err => {
+                            const obj = `{ "name": "Ville", "lat": ${lat.toFixed(4)}, "lon": ${lon.toFixed(4)}, "labelPos": "top" },`;
+                            out.innerText = obj;
+                            console.error("GEO API ERR:", err);
+                        });
                     return;
                 }
 
