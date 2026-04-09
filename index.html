@@ -1994,9 +1994,9 @@
                 "id": "83_zoom",
                 "name": "VAR - LITTORAL",
                 "geoUrl": "https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/departements/83-var/departement-83-var.geojson",
-                "padding": [10, 10, 10, 10],
-                "center": [43.11, 5.82],
-                "zoom": 11.5,
+                "padding": [0, 0, 0, 0],
+                "center": [43.115, 5.81],
+                "zoom": 12.5,
                 "cities": [
                     { "name": "Bandol", "lat": 43.147, "lon": 5.7488 },
                     { "name": "Sanary-sur-Mer", "lat": 43.1374, "lon": 5.7951 },
@@ -3021,7 +3021,7 @@
             // Gestion automatique de la visibilité des villes : SHOWN pour cnews, HIDDEN pour le reste par défaut
             const hideCitiesCheck = document.getElementById('hide-cities-check');
             if (hideCitiesCheck) {
-                hideCitiesCheck.checked = (selectValue !== 'cnews');
+                hideCitiesCheck.checked = (selectValue !== 'cnews' && selectValue !== 'var_zoom');
                 toggleCities();
             }
 
