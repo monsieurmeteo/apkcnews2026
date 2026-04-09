@@ -1997,6 +1997,7 @@
                 "padding": [0, 0, 0, 0],
                 "center": [43.115, 5.81],
                 "zoom": 12.5,
+                "preferCenter": true,
                 "cities": [
                     { "name": "Bandol", "lat": 43.147, "lon": 5.7488 },
                     { "name": "Sanary-sur-Mer", "lat": 43.1374, "lon": 5.7951 },
@@ -2998,6 +2999,11 @@
         function fitMapToZone() {
             if (!map) return;
             map.invalidateSize();
+
+            if (currentConfig.preferCenter && currentConfig.center && currentConfig.zoom) {
+                map.setView(currentConfig.center, currentConfig.zoom, { animate: false });
+                return;
+            }
 
             // Utiliser le padding de la config ou une valeur par défaut, en forçant l'espace pour le titre
             // On écrase le padding-top à 120px minimum pour éviter que le titre n'écrive sur la carte
