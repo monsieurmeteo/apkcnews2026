@@ -3382,22 +3382,25 @@
                         merged.hourly[v] = dataTable;
                     });
 
-                    // Variable TEMPÉRATURE : AROME pour J0, modèle sélectionné pour J+1+
+                    // Variable TEMPÉRATURE : AROME pour J0, modèle sélectionné pour J+1+ avec fallback ECMWF
                     {
                         let dataTable = new Array(loc.hourly.time.length).fill(null);
-                        // J0 : AROME
                         const aromeData = loc.hourly['temperature_2m_arome_france'] || loc.hourly['temperature_2m'];
-                        if (aromeData) {
-                            for (let i = 0; i < Math.min(24, dataTable.length, aromeData.length); i++) {
-                                if (dataTable[i] === null && aromeData[i] !== null) dataTable[i] = aromeData[i];
-                            }
-                        }
-                        // J+1 : modèle de température sélectionné
-                        const tempModelKey = `temperature_2m_${activeTempModel}`;
-                        const tempData = loc.hourly[tempModelKey] || loc.hourly['temperature_2m_ecmwf_ifs'] || loc.hourly['temperature_2m'];
-                        if (tempData) {
-                            for (let i = 24; i < Math.min(dataTable.length, tempData.length); i++) {
-                                if (dataTable[i] === null && tempData[i] !== null) dataTable[i] = tempData[i];
+                        const primaryData = loc.hourly[`temperature_2m_${activeTempModel}`];
+                        const fallbackData = loc.hourly['temperature_2m_ecmwf_ifs'] || loc.hourly['temperature_2m'];
+
+                        for (let i = 0; i < dataTable.length; i++) {
+                            if (i < 24) {
+                                // J0 : Priorité AROME
+                                if (aromeData && aromeData[i] !== null) dataTable[i] = aromeData[i];
+                                else if (fallbackData && fallbackData[i] !== null) dataTable[i] = fallbackData[i];
+                            } else {
+                                // J1+ : Priorité Modèle Choisi, Fallback ECMWF
+                                if (primaryData && primaryData[i] !== null && primaryData[i] !== undefined) {
+                                    dataTable[i] = primaryData[i];
+                                } else if (fallbackData && fallbackData[i] !== null) {
+                                    dataTable[i] = fallbackData[i];
+                                }
                             }
                         }
                         merged.hourly['temperature_2m'] = dataTable;
@@ -5216,18 +5219,25 @@
                     const mergedTemp = new Array(hLength).fill(null);
                     const mergedGusts = new Array(hLength).fill(null);
                     
+                    const primaryData = loc.hourly[`temperature_2m_${activeTempModel}`];
+                    const fallbackData = loc.hourly['temperature_2m_ecmwf_ifs'] || loc.hourly.temperature_2m;
+                    const aromeData = loc.hourly['temperature_2m_arome_france'] || loc.hourly.temperature_2m;
+
                     for (let i = 0; i < hLength; i++) {
                         const dIdx = Math.floor(i / 24);
                         if (dIdx === 0) {
-                            // J0 : AROME uniquement pour la température
-                            const tVal = loc.hourly['temperature_2m_arome_france'] || loc.hourly.temperature_2m;
-                            if (tVal && tVal[i] !== null) mergedTemp[i] = tVal[i];
+                            // J0 : AROME priorité
+                            if (aromeData && aromeData[i] !== null) mergedTemp[i] = aromeData[i];
+                            else if (fallbackData && fallbackData[i] !== null) mergedTemp[i] = fallbackData[i];
                         } else {
-                            // J+1+ : modèle de température sélectionné
-                            const tKey = `temperature_2m_${activeTempModel}`;
-                            const tVal = loc.hourly[tKey] || loc.hourly['temperature_2m_ecmwf_ifs'] || loc.hourly.temperature_2m;
-                            if (tVal && tVal[i] !== null) mergedTemp[i] = tVal[i];
+                            // J1+ : Modèle actif, sinon ECMWF
+                            if (primaryData && primaryData[i] !== null && primaryData[i] !== undefined) {
+                                mergedTemp[i] = primaryData[i];
+                            } else if (fallbackData && fallbackData[i] !== null) {
+                                mergedTemp[i] = fallbackData[i];
+                            }
                         }
+                        // Rafales : AROME (J0) + ECMWF (J+1+) inchangé logic...
                         // Rafales : AROME (J0) + ECMWF (J+1+) inchangé
                         const modelListGusts = ["arome_france", "ecmwf_ifs"];
                         for (const m of modelListGusts) {
