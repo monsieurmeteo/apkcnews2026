@@ -1351,6 +1351,71 @@
         .fog-na  { color: #555; font-size: 11px; }
         .fog-table tbody tr:hover .fog-city-name,
         .fog-table tbody tr:hover .fog-cell { filter: brightness(1.35); }
+
+        /* === COMPARATIF CSV === */
+        .csv-v-card {
+            background: #0f1a33;
+            border-radius: 12px;
+            border: 1px solid #1a2a40;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .csv-v-header {
+            padding: 15px 20px;
+            background: #16264d;
+            border-bottom: 1px solid #2ecc71;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .csv-v-title {
+            color: #fff;
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .csv-v-table-container {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .csv-v-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            color: #ccc;
+        }
+        .csv-v-table th {
+            position: sticky;
+            top: 0;
+            background: #1a2a40;
+            color: #8ab4d4;
+            padding: 8px;
+            font-weight: 800;
+            text-align: center;
+            border-bottom: 2px solid #0a0a0f;
+            z-index: 10;
+        }
+        .csv-v-table td {
+            padding: 6px 8px;
+            border-bottom: 1px solid #0a0a0f;
+            text-align: center;
+        }
+        .csv-v-city {
+            text-align: left !important;
+            font-weight: 700;
+            color: #fff;
+            background: #121e38;
+            position: sticky;
+            left: 0;
+            z-index: 5;
+        }
+        .csv-v-val-tn { color: #4db8ff; font-weight: 700; }
+        .csv-v-val-tx { color: #ff6a00; font-weight: 700; }
+        .csv-v-val-ws { color: #2ecc71; opacity: 0.9; }
+        .csv-v-row-day { background: rgba(255,255,255,0.02); }
     </style>
 </head>
 
@@ -1468,6 +1533,9 @@
                 </div>
                 <button id="tab-fog" class="tab-btn" onclick="switchTab('fog')" style="width:100%; margin-top:5px; border-radius:6px; background:linear-gradient(135deg,rgba(120,170,220,0.08),rgba(60,100,160,0.05)); border:1px solid #3a6080; color:#8ab4d4; font-size:11px; letter-spacing:0.8px; padding:8px; font-weight:900;">
                     🌫️ BROUILLARDS J+1→J+4 (ARPEGE)
+                </button>
+                <button id="tab-csv-verify" class="tab-btn" onclick="switchTab('csv_verify')" style="width:100%; margin-top:5px; border-radius:6px; background:linear-gradient(135deg,rgba(46,204,113,0.08),rgba(30,150,80,0.05)); border:1px solid #2ecc71; color:#2ecc71; font-size:11px; letter-spacing:0.8px; padding:8px; font-weight:900;">
+                    📊 VÉRIFICATION CSV (GFS/ECMWF/ICON/ARP)
                 </button>
                 <div style="margin-top: 6px;">
                     <button onclick="toggleDrawingMode()"
@@ -1929,6 +1997,30 @@
                         <div style="color:#FFD700; font-weight:bold; font-size:13px; text-transform:uppercase; letter-spacing:1px;">Chargement ARPEGE...</div>
                     </div>
                     <div id="fog-table-container" style="display:none; overflow-x:auto;"></div>
+                </div>
+            </div>
+
+            <!-- VUE VÉRIFICATION CSV -->
+            <div id="csv-verification-area" style="display:none; width:100%; height:100%; background:#0a0a0f; overflow-y:auto; box-sizing:border-box;">
+                <div style="padding:20px 25px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px; border-bottom:1px solid #1a2a40; padding-bottom:12px;">
+                        <div>
+                            <h2 style="margin:0; color:#fff; font-size:18px; font-weight:900; letter-spacing:1px;">📊 VÉRIFICATION &amp; COMPARATIF CSV — 31 VILLES</h2>
+                            <div style="font-size:10px; color:#666; margin-top:4px; letter-spacing:0.5px;">COMPARAISON DES MODÈLES POUR LES 7 PROCHAINS JOURS</div>
+                        </div>
+                        <button onclick="loadCSVVerification()" style="background:#0f1a33; color:#2ecc71; border:1px solid #2ecc71; padding:9px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer;">
+                            <i class="fas fa-sync-alt"></i> CHARGER LES DONNÉES
+                        </button>
+                    </div>
+
+                    <div id="csv-verify-loading" style="display:none; flex-direction:column; align-items:center; justify-content:center; height:200px; gap:15px;">
+                        <div class="spinner"></div>
+                        <div style="color:#2ecc71; font-weight:bold; font-size:13px; text-transform:uppercase;">Agrégation des modèles en cours...</div>
+                    </div>
+
+                    <div id="csv-verify-grid" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(600px, 1fr)); gap:25px;">
+                        <!-- Les 4 colonnes/tables seront injectées ici -->
+                    </div>
                 </div>
             </div>
             <div id="loading">
@@ -4317,10 +4409,13 @@
             const tabCommune = document.getElementById('tab-commune');
             const tabManual = document.getElementById('tab-manual');
             const tabFog = document.getElementById('tab-fog');
+            const tabCSVVerify = document.getElementById('tab-csv-verify');
 
             const mapArea = document.getElementById('capture-area');
             const communeArea = document.getElementById('commune-forecast-area');
             const fogArea = document.getElementById('fog-forecast-area');
+            const csvVerifyArea = document.getElementById('csv-verification-area');
+
             const mapControls = document.getElementById('map-controls-group');
             const searchSection = document.getElementById('commune-search-section');
             const manualCitySection = document.getElementById('manual-city-section');
@@ -4330,11 +4425,14 @@
             if (tabCommune) tabCommune.classList.remove('active');
             if (tabManual) tabManual.classList.remove('active');
             if (tabFog) tabFog.classList.remove('active');
+            if (tabCSVVerify) tabCSVVerify.classList.remove('active');
 
             // Cacher toutes les zones
             if (searchSection) searchSection.style.display = 'none';
             if (manualCitySection) manualCitySection.style.display = 'none';
             if (fogArea) fogArea.style.display = 'none';
+            if (communeArea) communeArea.style.display = 'none';
+            if (csvVerifyArea) csvVerifyArea.style.display = 'none';
 
             if (view === 'map') {
                 if (tabMap) tabMap.classList.add('active');
@@ -4356,15 +4454,162 @@
                 if (tabFog) tabFog.classList.add('active');
                 if (mapArea) mapArea.style.display = 'none';
                 if (communeArea) communeArea.style.display = 'none';
-                if (fogArea) fogArea.style.display = 'block';
                 if (mapControls) mapControls.style.display = 'none';
+                if (fogArea) fogArea.style.display = 'block';
                 fetchFogForecast();
+            } else if (view === 'csv_verify') {
+                if (tabCSVVerify) tabCSVVerify.classList.add('active');
+                if (mapArea) mapArea.style.display = 'none';
+                if (communeArea) communeArea.style.display = 'none';
+                if (mapControls) mapControls.style.display = 'none';
+                if (csvVerifyArea) csvVerifyArea.style.display = 'block';
             } else {
                 if (tabCommune) tabCommune.classList.add('active');
                 if (mapArea) mapArea.style.display = 'none';
                 if (communeArea) communeArea.style.display = 'block';
                 if (mapControls) mapControls.style.display = 'none';
                 if (searchSection) searchSection.style.display = 'block';
+            }
+        }
+
+        // --- LOGIQUE VÉRIFICATION CSV ---
+        async function loadCSVVerification() {
+            const grid = document.getElementById('csv-verify-grid');
+            const loading = document.getElementById('csv-verify-loading');
+            if (!grid || !loading) return;
+            grid.innerHTML = '';
+            loading.style.display = 'flex';
+
+            try {
+                const models = ['meteofrance_arpege_europe', 'ecmwf_ifs', 'gfs_global', 'icon_global'];
+                const lats = MASTER_CSV_CITIES.map(c => c.lat).join(',');
+                const lons = MASTER_CSV_CITIES.map(c => c.lon).join(',');
+                const fetchUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&hourly=temperature_2m,wind_gusts_10m&models=arome_france,${models.join(',')}&forecast_days=8&timezone=Europe/Paris`;
+
+                const res = await fetch(fetchUrl);
+                if (!res.ok) throw new Error("Erreur API : " + res.status);
+                const data = await res.json();
+                const locations = Array.isArray(data) ? data : [data];
+
+                loading.style.display = 'none';
+
+                const modelMeta = {
+                    'meteofrance_arpege_europe': { name: 'ARPEGE (MF)', color: '#4db8ff' },
+                    'ecmwf_ifs': { name: 'ECMWF (IFS)', color: '#2ecc71' },
+                    'gfs_global': { name: 'GFS (NCEP)', color: '#f39c12' },
+                    'icon_global': { name: 'ICON (DWD)', color: '#e74c3c' }
+                };
+
+                models.forEach(modelKey => {
+                    renderModelPreview(modelKey, locations, modelMeta[modelKey]);
+                });
+
+            } catch (err) {
+                console.error(err);
+                loading.style.display = 'none';
+                grid.innerHTML = `<div style="color:#e74c3c; padding:20px;">Erreur lors du chargement des données.</div>`;
+            }
+        }
+
+        function renderModelPreview(modelKey, locations, meta) {
+            const grid = document.getElementById('csv-verify-grid');
+            if (!grid) return;
+            const card = document.createElement('div');
+            card.className = 'csv-v-card';
+
+            const header = document.createElement('div');
+            header.className = 'csv-v-header';
+            header.style.borderBottomColor = meta.color;
+            header.innerHTML = `
+                <div class="csv-v-title" style="color:${meta.color}">${meta.name}</div>
+                <button onclick="downloadSpecificModelCSV('${modelKey}')" style="background:${meta.color}; color:#000; border:none; padding:6px 14px; border-radius:6px; font-weight:900; font-size:10px; cursor:pointer;">
+                    <i class="fas fa-download"></i> CSV
+                </button>
+            `;
+            card.appendChild(header);
+
+            const tableContainer = document.createElement('div');
+            tableContainer.className = 'csv-v-table-container';
+
+            let tableHtml = `<table class="csv-v-table">
+                <thead>
+                    <tr>
+                        <th class="csv-v-city">VILLE</th>
+                        <th>DATE</th>
+                        <th>TN</th>
+                        <th>TX</th>
+                        <th>RAF.</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+            locations.forEach((loc, cityIdx) => {
+                const cityName = MASTER_CSV_CITIES[cityIdx].name;
+                const formattedCity = cityName.split('-').map(part => part.split(' ').map(s => s.charAt(0).toUpperCase() + s.substring(1).toLowerCase()).join(' ')).join('-');
+                
+                const primaryData = loc.hourly[`temperature_2m_${modelKey}`];
+                const fallbackData = loc.hourly['temperature_2m_ecmwf_ifs'] || loc.hourly.temperature_2m;
+                const aromeData = loc.hourly['temperature_2m_arome_france'] || loc.hourly.temperature_2m;
+
+                const primaryGusts = loc.hourly[`wind_gusts_10m_${modelKey}`] || loc.hourly.wind_gusts_10m;
+                const fallbackGusts = loc.hourly['wind_gusts_10m_ecmwf_ifs'] || loc.hourly.wind_gusts_10m;
+                const aromeGusts = loc.hourly['wind_gusts_10m_arome_france'] || loc.hourly.wind_gusts_10m;
+
+                for (let d = 0; d < 7; d++) {
+                    let dayTn = null, dayTx = null, dayGust = 0;
+                    const hours = [];
+                    for (let h = 0; h < 24; h++) {
+                        const i = d * 24 + h;
+                        let t = null, g = null;
+                        
+                        if (d === 0) {
+                            t = (aromeData && aromeData[i] !== null) ? aromeData[i] : (fallbackData ? fallbackData[i] : null);
+                            g = (aromeGusts && aromeGusts[i] !== null) ? aromeGusts[i] : (fallbackGusts ? fallbackGusts[i] : 0);
+                        } else {
+                            t = (primaryData && primaryData[i] !== null) ? primaryData[i] : (fallbackData ? fallbackData[i] : null);
+                            g = (primaryGusts && primaryGusts[i] !== null) ? primaryGusts[i] : (fallbackGusts ? fallbackGusts[i] : 0);
+                        }
+                        if (t !== null) hours.push(t);
+                        if (g > dayGust) dayGust = g;
+                    }
+
+                    if (hours.length > 0) {
+                        dayTn = Math.round(Math.min(...hours));
+                        dayTx = Math.round(Math.max(...hours));
+                    }
+                    const rDayGust = Math.round(dayGust / 5) * 5;
+
+                    const dateObj = new Date(loc.hourly.time[d * 24]);
+                    const dateStr = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+                    
+                    tableHtml += `<tr class="${d % 2 === 0 ? 'csv-v-row-day' : ''}">
+                        ${d === 0 ? `<td class="csv-v-city" rowspan="7" style="border-right:1px solid #0a0a0f;">${formattedCity}</td>` : ''}
+                        <td>${dateStr}</td>
+                        <td class="csv-v-val-tn">${dayTn !== null ? dayTn + '°' : '--'}</td>
+                        <td class="csv-v-val-tx">${dayTx !== null ? dayTx + '°' : '--'}</td>
+                        <td class="csv-v-val-ws">${rDayGust}</td>
+                    </tr>`;
+                }
+            });
+
+            tableHtml += `</tbody></table>`;
+            tableContainer.innerHTML = tableHtml;
+            card.appendChild(tableContainer);
+            grid.appendChild(card);
+        }
+
+        async function downloadSpecificModelCSV(modelKey) {
+            const tempModelSelect = document.getElementById('temp-model-select');
+            let originalVal = 'ecmwf_ifs';
+            if (tempModelSelect) {
+                originalVal = tempModelSelect.value;
+                tempModelSelect.value = modelKey;
+            }
+            
+            try {
+                await generate7DayCSV();
+            } finally {
+                if (tempModelSelect) tempModelSelect.value = originalVal;
             }
         }
 
