@@ -1287,6 +1287,70 @@
             text-shadow: 2px 2px 0 #000;
             line-height: 1;
         }
+
+        /* === ONGLET BROUILLARDS === */
+        #fog-forecast-area {
+            display: none;
+            width: 100%;
+            height: 100%;
+            background: #0a0a0f;
+            overflow-y: auto;
+            box-sizing: border-box;
+            font-family: 'Roboto Condensed', sans-serif;
+        }
+        .fog-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .fog-table thead th {
+            background: #0f1a33;
+            color: #8ab4d4;
+            padding: 10px 12px;
+            text-align: center;
+            font-weight: 900;
+            letter-spacing: 0.6px;
+            border-bottom: 2px solid #1e3a5f;
+            white-space: nowrap;
+            font-size: 11px;
+            text-transform: uppercase;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .fog-city-col { text-align: left !important; min-width: 120px; background: #0c0c18 !important; }
+        .fog-day-col  { min-width: 140px; }
+        .fog-city-name {
+            color: #ddd;
+            font-weight: 700;
+            padding: 9px 14px;
+            background: #0e0e18;
+            border-bottom: 1px solid #1a1a2e;
+            border-right: 1px solid #1a1a2e;
+            font-size: 12px;
+            white-space: nowrap;
+            position: sticky;
+            left: 0;
+            z-index: 1;
+        }
+        .fog-cell {
+            padding: 8px 10px;
+            text-align: center;
+            border-bottom: 1px solid #111;
+            border-left: 1px solid #111;
+            vertical-align: middle;
+            line-height: 1.4;
+        }
+        .fog-yes  { background: rgba(255, 193, 7, 0.08); }
+        .fog-no   { background: rgba(30, 60, 30, 0.4); }
+        .fog-none { background: rgba(50,50,50,0.3); }
+        .fog-icon  { display: block; font-size: 16px; margin-bottom: 2px; }
+        .fog-time  { display: block; color: #FFC107; font-weight: 700; font-size: 10px; line-height: 1.4; }
+        .fog-source { display: block; color: #888; font-size: 9px; margin-top: 2px; }
+        .fog-ok  { color: #2ecc71; font-size: 11px; font-weight: 600; }
+        .fog-na  { color: #555; font-size: 11px; }
+        .fog-table tbody tr:hover .fog-city-name,
+        .fog-table tbody tr:hover .fog-cell { filter: brightness(1.35); }
     </style>
 </head>
 
@@ -1402,6 +1466,9 @@
                     <button id="tab-manual" class="tab-btn" onclick="switchTab('manual')"
                         style="border-radius: 0 8px 8px 0;">VILLES MANUELLES</button>
                 </div>
+                <button id="tab-fog" class="tab-btn" onclick="switchTab('fog')" style="width:100%; margin-top:5px; border-radius:6px; background:linear-gradient(135deg,rgba(120,170,220,0.08),rgba(60,100,160,0.05)); border:1px solid #3a6080; color:#8ab4d4; font-size:11px; letter-spacing:0.8px; padding:8px; font-weight:900;">
+                    🌫️ BROUILLARDS J+1→J+4 (ARPEGE)
+                </button>
                 <div style="margin-top: 6px;">
                     <button onclick="toggleDrawingMode()"
                         style="width:100%; padding:9px 0; background:linear-gradient(135deg,#1e2f5a,#0f1a33); color:#4db8ff; font-weight:900; font-size:13px; border:1px solid #4db8ff; border-radius:8px; cursor:pointer; letter-spacing:1.5px;">
@@ -1831,6 +1898,37 @@
                         <h2>RECHERCHEZ UNE COMMUNE PAR CODE POSTAL</h2>
                         <p>Saisissez un code postal dans la barre latérale pour afficher les prévisions détaillées.</p>
                     </div>
+                </div>
+            </div>
+
+            <!-- VUE BROUILLARDS ARPEGE -->
+            <div id="fog-forecast-area">
+                <div style="padding:20px 25px;">
+                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; border-bottom:1px solid #1a2a40; padding-bottom:12px;">
+                        <div>
+                            <h2 style="margin:0; color:#fff; font-size:18px; font-weight:900; letter-spacing:1px;">🌫️ BROUILLARDS — J+1 À J+4</h2>
+                            <div style="font-size:10px; color:#666; margin-top:4px; letter-spacing:0.5px;">MODÈLE ARPEGE (MétéoFrance) &bull; 31 villes du réseau national</div>
+                        </div>
+                        <button onclick="fetchFogForecast(true)" style="background:#0f1a33; color:#4db8ff; border:1px solid #4db8ff; padding:9px 16px; border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; white-space:nowrap;">
+                            <i class="fas fa-sync-alt"></i> ACTUALISER
+                        </button>
+                    </div>
+                    <!-- Légende -->
+                    <div style="display:flex; flex-wrap:wrap; gap:16px; margin-bottom:14px; font-size:10px;">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <div style="width:12px; height:12px; background:rgba(255,193,7,0.2); border:1px solid #FFC107; border-radius:2px;"></div>
+                            <span style="color:#888;">🌫️ Brouillard détecté (code WMO 45/48 ou visibilité &lt;1 km)</span>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <div style="width:12px; height:12px; background:rgba(46,204,113,0.15); border:1px solid #2ecc71; border-radius:2px;"></div>
+                            <span style="color:#888;">✅ Aucun brouillard</span>
+                        </div>
+                    </div>
+                    <div id="fog-loading" style="display:flex; align-items:center; justify-content:center; height:180px; flex-direction:column; gap:12px;">
+                        <div class="spinner"></div>
+                        <div style="color:#FFD700; font-weight:bold; font-size:13px; text-transform:uppercase; letter-spacing:1px;">Chargement ARPEGE...</div>
+                    </div>
+                    <div id="fog-table-container" style="display:none; overflow-x:auto;"></div>
                 </div>
             </div>
             <div id="loading">
@@ -4214,21 +4312,25 @@
             const tabMap = document.getElementById('tab-map');
             const tabCommune = document.getElementById('tab-commune');
             const tabManual = document.getElementById('tab-manual');
+            const tabFog = document.getElementById('tab-fog');
 
             const mapArea = document.getElementById('capture-area');
             const communeArea = document.getElementById('commune-forecast-area');
+            const fogArea = document.getElementById('fog-forecast-area');
             const mapControls = document.getElementById('map-controls-group');
             const searchSection = document.getElementById('commune-search-section');
             const manualCitySection = document.getElementById('manual-city-section');
 
-            // Robust reset
+            // Reset tous les onglets
             if (tabMap) tabMap.classList.remove('active');
             if (tabCommune) tabCommune.classList.remove('active');
             if (tabManual) tabManual.classList.remove('active');
+            if (tabFog) tabFog.classList.remove('active');
 
-            // Cache par défaut
+            // Cacher toutes les zones
             if (searchSection) searchSection.style.display = 'none';
             if (manualCitySection) manualCitySection.style.display = 'none';
+            if (fogArea) fogArea.style.display = 'none';
 
             if (view === 'map') {
                 if (tabMap) tabMap.classList.add('active');
@@ -4246,6 +4348,13 @@
                 if (mapControls) mapControls.style.display = 'block';
                 if (manualCitySection) manualCitySection.style.display = 'block';
                 if (map) map.invalidateSize();
+            } else if (view === 'fog') {
+                if (tabFog) tabFog.classList.add('active');
+                if (mapArea) mapArea.style.display = 'none';
+                if (communeArea) communeArea.style.display = 'none';
+                if (fogArea) fogArea.style.display = 'block';
+                if (mapControls) mapControls.style.display = 'none';
+                fetchFogForecast();
             } else {
                 if (tabCommune) tabCommune.classList.add('active');
                 if (mapArea) mapArea.style.display = 'none';
@@ -5175,6 +5284,178 @@
             }
         }
 
+
+        // ============================================================
+        // ONGLET BROUILLARDS — ARPEGE
+        // ============================================================
+        let fogForecastData = null;
+        let fogForecastLoaded = false;
+
+        async function fetchFogForecast(forceRefresh = false) {
+            if (fogForecastLoaded && !forceRefresh) {
+                renderFogTable(fogForecastData);
+                return;
+            }
+            fogForecastLoaded = false;
+            const loadingEl = document.getElementById('fog-loading');
+            const tableEl  = document.getElementById('fog-table-container');
+            if (loadingEl) { loadingEl.style.display = 'flex'; loadingEl.innerHTML = '<div class="spinner"></div><div style="color:#FFD700;font-weight:bold;font-size:13px;text-transform:uppercase;letter-spacing:1px;">Chargement ARPEGE...</div>'; }
+            if (tableEl)  tableEl.style.display = 'none';
+
+            try {
+                const lats = MASTER_CSV_CITIES.map(c => c.lat).join(',');
+                const lons = MASTER_CSV_CITIES.map(c => c.lon).join(',');
+                // Demander les variables brouillard + ARPEGE modele unique => cles sans prefixe
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&hourly=weathercode,visibility,relativehumidity_2m,cloud_cover_low,windspeed_10m&models=meteofrance_arpege_europe&forecast_days=5&timezone=Europe/Paris`;
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('API ' + res.status);
+                const raw = await res.json();
+                fogForecastData = Array.isArray(raw) ? raw : [raw];
+                fogForecastLoaded = true;
+                renderFogTable(fogForecastData);
+            } catch (e) {
+                if (loadingEl) loadingEl.innerHTML = `<div style="color:#e74c3c;font-size:14px;text-align:center;">⚠️ Erreur de chargement ARPEGE<br><small style="color:#888">${e.message}</small></div>`;
+                console.error('Fog fetch error:', e);
+            }
+        }
+
+        // Retourne les heures matinales (05h-12h) détectées comme brouillard pour un jour donné
+        function detectFogHours(loc, dayIndex) {
+            const fogHours = [];
+            const startH = dayIndex * 24;
+            const tLen = loc.hourly.time ? loc.hourly.time.length : 0;
+
+            const wcArr  = loc.hourly.weathercode || loc.hourly.weathercode_meteofrance_arpege_europe || [];
+            const visArr = loc.hourly.visibility   || loc.hourly.visibility_meteofrance_arpege_europe  || [];
+            const humArr = loc.hourly.relativehumidity_2m || loc.hourly.relativehumidity_2m_meteofrance_arpege_europe || [];
+            const cldArr = loc.hourly.cloud_cover_low     || loc.hourly.cloud_cover_low_meteofrance_arpege_europe     || [];
+            const wndArr = loc.hourly.windspeed_10m       || loc.hourly.windspeed_10m_meteofrance_arpege_europe       || [];
+
+            // Fenêtre matinale uniquement : 05h à 12h (heures de la journée)
+            for (let hour = 5; hour <= 11; hour++) {
+                const h = startH + hour;
+                if (h >= tLen) break;
+
+                const wc  = wcArr[h];
+                const vis = visArr[h];
+                const hum = humArr[h];
+                const cld = cldArr[h];
+                const wnd = wndArr[h];
+
+                const isFogCode = (wc === 45 || wc === 48);               // WMO fog/rime fog
+                const isLowVis  = (vis != null && vis < 1000);             // visibilité < 1 km
+                const isFogHeur = (hum >= 96 && cld >= 85 && wnd != null && wnd < 8); // heuristique dense
+
+                if (isFogCode || isLowVis || isFogHeur) {
+                    const hasCd = isFogCode;
+                    const hasVs = isLowVis;
+                    const src   = hasCd ? 'Brouillard (code WMO)' : hasVs ? 'Brouillard (visibilité)' : 'Brouillard (estimé)';
+                    fogHours.push({ hour, src });
+                }
+            }
+            return fogHours;
+        }
+
+        // Groupe des heures consécutives en plages ex: [{start:5,end:8}]
+        function groupFogHours(fogHoursArr) {
+            if (!fogHoursArr.length) return [];
+            const hours = fogHoursArr.map(f => f.hour);
+            const periods = [];
+            let start = hours[0], prev = hours[0];
+            for (let i = 1; i < hours.length; i++) {
+                if (hours[i] === prev + 1) { prev = hours[i]; }
+                else { periods.push({ start, end: prev }); start = hours[i]; prev = hours[i]; }
+            }
+            periods.push({ start, end: prev });
+            return periods;
+        }
+
+        function formatFogPeriods(periods) {
+            return periods.map(p => {
+                const s = String(p.start).padStart(2, '0') + 'h';
+                const e = p.end < 23 ? String(p.end + 1).padStart(2, '0') + 'h' : '24h';
+                return s === e ? s : s + '–' + e;
+            }).join(' / ');
+        }
+
+        function renderFogTable(locations) {
+            const loadingEl = document.getElementById('fog-loading');
+            const tableEl   = document.getElementById('fog-table-container');
+            if (!tableEl) return;
+            if (loadingEl) loadingEl.style.display = 'none';
+
+            const days = [];
+            for (let d = 1; d <= 4; d++) {
+                const dt = new Date();
+                dt.setDate(dt.getDate() + d);
+                days.push({
+                    index: d,
+                    label: dt.toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()
+                });
+            }
+
+            const ts = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            let rowsHtml = '';
+            let fogCities = [];
+
+            locations.forEach((loc, cityIdx) => {
+                const name = MASTER_CSV_CITIES[cityIdx]?.name || '?';
+                let hasFog = false;
+                let cells = '';
+
+                days.forEach(day => {
+                    const fogHoursArr = detectFogHours(loc, day.index);
+                    const tLen = loc.hourly.time ? loc.hourly.time.length : 0;
+
+                    if (tLen < (day.index + 1) * 24) {
+                        cells += `<td class="fog-cell fog-none"><span class="fog-na">—</span></td>`;
+                        return;
+                    }
+
+                    if (fogHoursArr.length > 0) {
+                        hasFog = true;
+                        const periods = groupFogHours(fogHoursArr);
+                        const timeStr = formatFogPeriods(periods);
+                        const allDay  = fogHoursArr.length >= 20;
+                        const mainStr = allDay ? 'Toute la journée' : timeStr;
+                        // Utiliser la source de la première heure détectée
+                        const src = fogHoursArr[0].src;
+                        cells += `<td class="fog-cell fog-yes">
+                            <span class="fog-icon">🌫️</span>
+                            <span class="fog-time">${mainStr}</span>
+                            <span class="fog-source">${src}</span>
+                        </td>`;
+                    } else {
+                        cells += `<td class="fog-cell fog-no"><span class="fog-ok">✅ Aucun</span></td>`;
+                    }
+                });
+
+                if (hasFog) fogCities.push(name);
+                rowsHtml += `<tr><td class="fog-city-name">${name.toUpperCase()}</td>${cells}</tr>`;
+            });
+
+            const fogSummary = fogCities.length > 0
+                ? `<span style="color:#FFC107;font-weight:700;">🌫️ ${fogCities.length} ville${fogCities.length > 1 ? 's' : ''} concernée${fogCities.length > 1 ? 's' : ''}</span> : ${fogCities.join(', ')}`
+                : `<span style="color:#2ecc71;font-weight:700;">Aucun brouillard prévu</span> sur les 4 prochains jours`;
+
+            const html = `
+                <div style="font-size:10px; color:#555; text-align:right; padding:2px 4px 8px;">Mise à jour : ${ts} &bull; ARPEGE-Europe</div>
+                <div style="background:#0f1a33; border:1px solid #1e3a5f; border-radius:8px; padding:10px 14px; margin-bottom:12px; font-size:11px; color:#ccc; line-height:1.6;">
+                    <strong style="color:#8ab4d4; font-size:10px; text-transform:uppercase; letter-spacing:0.5px;">Bilan J+1&rarr;J+4</strong><br>${fogSummary}
+                </div>
+                <div style="overflow-x:auto;">
+                <table class="fog-table">
+                    <thead><tr>
+                        <th class="fog-city-col fog-day-col">VILLE (${MASTER_CSV_CITIES.length})</th>
+                        ${days.map(d => `<th class="fog-day-col">${d.label}</th>`).join('')}
+                    </tr></thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+                </div>`;
+
+            tableEl.innerHTML = html;
+            tableEl.style.display = 'block';
+        }
 
         window.onload = function () {
             initLeafletMap();
