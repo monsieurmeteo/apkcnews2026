@@ -5356,21 +5356,30 @@
                     }
 
                     // --- CARTE 4 : SPÉCIFIQUE CNEWS (Suffix _CNEWS) ---
-                    // Ajouté à la demande : si on exporte depuis France Picto, on génère aussi la carte CNEWS (31 villes)
-                    if (zone === 'france_pictos') {
+                    // Ajouté à la demande : si on exporte depuis une vue nationale, on génère aussi la carte CNEWS (31 villes)
+                    if (isNational) {
                         document.getElementById('loading-text').innerText = "GÉNÉRATION CARTE CNEWS...";
                         const zoneSelect = document.getElementById('zone-select');
                         const oldZoneValue = zoneSelect.value;
                         
+                        const windCheck = document.getElementById('simple-wind-check');
+                        const wasWindChecked = windCheck ? windCheck.checked : false;
+
                         zoneSelect.value = 'cnews';
                         autoZoningCheck.checked = false; // Pas de zonage sur CNEWS
                         hideMarkersCheck.checked = false; // Voir les villes
+                        if (windCheck) windCheck.checked = false; // Pas de rafales sur CNEWS
                         if (fogGroup) fogGroup.addTo(map); // Voir les brouillards
                         
+                        updateWindDisplay();
                         await handleZoneChange(true); // Switch sans reset les modifs manuelles
                         await updateDisplay();
                         await performCapture("_CNEWS");
                         
+                        // Restauration spécifique vent
+                        if (windCheck) windCheck.checked = wasWindChecked;
+                        updateWindDisplay();
+
                         // Retour à la zone d'origine pour la suite de la restauration
                         zoneSelect.value = oldZoneValue;
                         await handleZoneChange(true);
