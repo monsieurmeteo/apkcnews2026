@@ -5355,6 +5355,27 @@
                         await performCapture("_SURCOUCHES");
                     }
 
+                    // --- CARTE 4 : SPÉCIFIQUE CNEWS (Suffix _CNEWS) ---
+                    // Ajouté à la demande : si on exporte depuis France Picto, on génère aussi la carte CNEWS (31 villes)
+                    if (zone === 'france_pictos') {
+                        document.getElementById('loading-text').innerText = "GÉNÉRATION CARTE CNEWS...";
+                        const zoneSelect = document.getElementById('zone-select');
+                        const oldZoneValue = zoneSelect.value;
+                        
+                        zoneSelect.value = 'cnews';
+                        autoZoningCheck.checked = false; // Pas de zonage sur CNEWS
+                        hideMarkersCheck.checked = false; // Voir les villes
+                        if (fogGroup) fogGroup.addTo(map); // Voir les brouillards
+                        
+                        await handleZoneChange(true); // Switch sans reset les modifs manuelles
+                        await updateDisplay();
+                        await performCapture("_CNEWS");
+                        
+                        // Retour à la zone d'origine pour la suite de la restauration
+                        zoneSelect.value = oldZoneValue;
+                        await handleZoneChange(true);
+                    }
+
                     // Restauration de l'état initial
                     autoZoningCheck.checked = wasAutoZoningChecked;
                     hideMarkersCheck.checked = wasHideMarkersChecked;
