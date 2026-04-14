@@ -5358,6 +5358,7 @@
                     // --- CARTE 4 : SPÉCIFIQUE CNEWS (Suffix _CNEWS) ---
                     // Ajouté à la demande : si on exporte depuis une vue nationale, on génère aussi la carte CNEWS (31 villes)
                     if (isNational) {
+                        forceShowOverlays = false; // Désactiver les flèches de rafales pour CNEWS
                         document.getElementById('loading-text').innerText = "GÉNÉRATION CARTE CNEWS...";
                         const zoneSelect = document.getElementById('zone-select');
                         const oldZoneValue = zoneSelect.value;
